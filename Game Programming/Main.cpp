@@ -17,7 +17,7 @@
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
-OBJECTid cID, tID;              // the main camera and the terrain for terrain following
+OBJECTid cID, tID, cpID;              // the main camera and the terrain for terrain following
 CHARACTERid actorID;            // the major character
 ACTIONid idleID, runID, curPoseID; // two actions
 ROOMid terrainRoomID = FAILED_ID;
@@ -121,12 +121,22 @@ void FyMain(int argc, char **argv)
    camera.SetNearPlane(5.0f);
    camera.SetFarPlane(100000.0f);
 
+   // camera parent for transmation cnotrol
+   FnObject cp;
+   cpID = scene.CreateObject(OBJECT);
+   cp.ID(cpID);
+   camera.SetParent(cpID);
+
    // set camera initial position and orientation
-   pos[0] = 4315.783f; pos[1] = -3199.686f; pos[2] = 93.046f;
+   /*pos[0] = 4315.783f; pos[1] = -3199.686f; pos[2] = 93.046f;
    fDir[0] = -0.983f; fDir[1] = -0.143f; fDir[2] = -0.119f;
-   uDir[0] = -0.116f; uDir[1] = -0.031f; uDir[2] = 0.993f;
-   camera.SetPosition(pos);
+   uDir[0] = -0.116f; uDir[1] = -0.031f; uDir[2] = 0.993f;*/
+   /*camera.SetPosition(pos);*/
+   cp.GetDirection(fDir, uDir);
    camera.SetDirection(fDir, uDir);
+   
+
+   
 
    // setup a point light
    FnLight lgt;
@@ -165,10 +175,21 @@ void FyMain(int argc, char **argv)
 void GameAI(int skip)
 {
    FnCharacter actor;
+   FnObject cp;
 
    // play character pose
    actor.ID(actorID);
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
+
+   cp.ID(cpID);
+   float pos[3], fDir[3];
+   actor.GetPosition(pos);
+   actor.GetDirection(fDir, NULL);
+   cp.SetPosition(pos);
+   cp.SetDirection(fDir, NULL);
+   cp.MoveForward(-300.0f);
+   cp.MoveUp(50.0f);
+   
 
    if (FyCheckHotKeyStatus(FY_UP)){
       actor.MoveForward(5.0f);
