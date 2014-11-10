@@ -27,6 +27,7 @@ TEXTid textID = FAILED_ID;
 int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
 
+float *fDir = NULL;
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
 void Movement(BYTE, BOOL4);
@@ -169,8 +170,15 @@ void GameAI(int skip)
    actor.ID(actorID);
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
 
-   // Homework #01 part 1
-   // ....
+   if (FyCheckHotKeyStatus(FY_UP)){
+      actor.MoveForward(5.0f);
+   }
+   if (FyCheckHotKeyStatus(FY_LEFT)){
+      actor.TurnRight(-5.0f);
+   }
+   if (FyCheckHotKeyStatus(FY_RIGHT)){
+      actor.TurnRight(5.0f);
+   }
 }
 
 
@@ -240,8 +248,21 @@ void RenderIt(int skip)
  -------------------*/
 void Movement(BYTE code, BOOL4 value)
 {
-   // Homework #01 part 2
-   // ....
+   FnCharacter actor;
+   actor.ID(actorID);
+
+   if (value) {
+      if (curPoseID != runID){
+         curPoseID = runID;
+         actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+      }
+   }
+   else if (!FyCheckHotKeyStatus(FY_UP) &&
+          !FyCheckHotKeyStatus(FY_LEFT) &&
+          !FyCheckHotKeyStatus(FY_RIGHT) ) {
+      curPoseID = idleID;
+      actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+   }
 }
 
 
