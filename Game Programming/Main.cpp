@@ -27,7 +27,6 @@ TEXTid textID = FAILED_ID;
 int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
 
-float *fDir = NULL;
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
 void Movement(BYTE, BOOL4);
@@ -128,16 +127,9 @@ void FyMain(int argc, char **argv)
    camera.SetParent(cpID);
 
    // set camera initial position and orientation
-   /*pos[0] = 4315.783f; pos[1] = -3199.686f; pos[2] = 93.046f;
-   fDir[0] = -0.983f; fDir[1] = -0.143f; fDir[2] = -0.119f;
-   uDir[0] = -0.116f; uDir[1] = -0.031f; uDir[2] = 0.993f;*/
-   /*camera.SetPosition(pos);*/
    cp.GetDirection(fDir, uDir);
    camera.SetDirection(fDir, uDir);
    
-
-   
-
    // setup a point light
    FnLight lgt;
    lgt.ID(scene.CreateObject(LIGHT));
@@ -182,23 +174,32 @@ void GameAI(int skip)
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
 
    cp.ID(cpID);
-   float pos[3], fDir[3];
-   actor.GetPosition(pos);
-   actor.GetDirection(fDir, NULL);
-   cp.SetPosition(pos);
-   cp.SetDirection(fDir, NULL);
-   cp.MoveForward(-300.0f);
+   float actpos[3], cppos[3], fDir[3], uDir[3];
+   actor.GetPosition(actpos);
+   actpos[2] += 100.0f;
+   actor.GetDirection(fDir, uDir);
+   cp.SetPosition(actpos);
+   cp.SetDirection(fDir, uDir);
+   cp.MoveForward(-500.0f);
    cp.MoveUp(50.0f);
+
+   cp.GetPosition(cppos);
+   for (int i = 0; i < 3; i++){
+      fDir[i] = actpos[i] - cppos[i];
+   }
+
+   cp.SetDirection(fDir, NULL);
+
    
 
    if (FyCheckHotKeyStatus(FY_UP)){
-      actor.MoveForward(5.0f);
+      actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
    }
    if (FyCheckHotKeyStatus(FY_LEFT)){
-      actor.TurnRight(-5.0f);
+      actor.TurnRight(-10.0f);
    }
    if (FyCheckHotKeyStatus(FY_RIGHT)){
-      actor.TurnRight(5.0f);
+      actor.TurnRight(10.0f);
    }
 }
 
