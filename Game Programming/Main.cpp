@@ -129,7 +129,7 @@ void FyMain(int argc, char **argv)
    // set camera initial position and orientation
    cp.GetDirection(fDir, uDir);
    camera.SetDirection(fDir, uDir);
-   
+
    // setup a point light
    FnLight lgt;
    lgt.ID(scene.CreateObject(LIGHT));
@@ -145,6 +145,7 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_UP, Movement, FALSE);      // Up for moving forward
    FyDefineHotKey(FY_RIGHT, Movement, FALSE);   // Right for turning right
    FyDefineHotKey(FY_LEFT, Movement, FALSE);    // Left for turning left
+   FyDefineHotKey(FY_DOWN, Movement, FALSE);
 
    // define some mouse functions
    FyBindMouseFunction(LEFT_MOUSE, InitPivot, PivotCam, NULL, NULL);
@@ -174,6 +175,8 @@ void GameAI(int skip)
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
 
    cp.ID(cpID);
+
+   // set cp
    float actpos[3], cppos[3], fDir[3], uDir[3];
    actor.GetPosition(actpos);
    actpos[2] += 100.0f;
@@ -182,16 +185,12 @@ void GameAI(int skip)
    cp.SetDirection(fDir, uDir);
    cp.MoveForward(-500.0f);
    cp.MoveUp(50.0f);
-
    cp.GetPosition(cppos);
    for (int i = 0; i < 3; i++){
       fDir[i] = actpos[i] - cppos[i];
    }
-
    cp.SetDirection(fDir, NULL);
-
    
-
    if (FyCheckHotKeyStatus(FY_UP)){
       actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
    }
@@ -200,6 +199,9 @@ void GameAI(int skip)
    }
    if (FyCheckHotKeyStatus(FY_RIGHT)){
       actor.TurnRight(10.0f);
+   }
+   if (FyCheckHotKeyStatus(FY_DOWN)){
+      actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
    }
 }
 
@@ -281,9 +283,19 @@ void Movement(BYTE code, BOOL4 value)
    }
    else if (!FyCheckHotKeyStatus(FY_UP) &&
           !FyCheckHotKeyStatus(FY_LEFT) &&
-          !FyCheckHotKeyStatus(FY_RIGHT) ) {
+          !FyCheckHotKeyStatus(FY_RIGHT) &&
+          !FyCheckHotKeyStatus(FY_DOWN) ) {
       curPoseID = idleID;
       actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+   }
+
+   if (code == FY_DOWN){
+      if (value) {
+         actor.TurnRight(180.0f);
+      }
+      else{
+         actor.TurnRight(-180.0f);
+      }
    }
 }
 
