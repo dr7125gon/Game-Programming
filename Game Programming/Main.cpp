@@ -191,7 +191,7 @@ void GameAI(int skip)
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
 
    cp.ID(cpID);
-   float fDir[3], afDir[3], tempd[3];
+   float fDir[3], afDir[3], auDir[3], tempd[3], uDir[3];
    int walkFlag;
    
    if (FyCheckHotKeyStatus(FY_UP)){
@@ -212,10 +212,48 @@ void GameAI(int skip)
       }
    }
    if (FyCheckHotKeyStatus(FY_LEFT)){
-      actor.TurnRight(-10.0f);
+      /*cp.GetDirection(fDir, NULL);
+      actor.GetDirection(afDir, NULL);
+      for (int i = 0; i < 3; i++){
+         tempd[i] = fDir[i];
+         fDir[i] = afDir[i];
+      }
+      cp.SetDirection(fDir, NULL);
+      cp.TurnRight(-1.0f);
+      for (int i = 2; i < 3; i++){
+         fDir[i] = tempd[i];
+      }
+      cp.SetDirection(fDir, NULL);*/
+      
+
+      float angle, leng;
+      leng = 500.0f * 2.0f * 3.1415926f;
+      angle = 360.0f / (leng / 10.0f);
+      cp.TurnRight(-angle);
+      actor.TurnRight(-angle);
+      actor.MoveForward(10.0f);
    }
    if (FyCheckHotKeyStatus(FY_RIGHT)){
-      actor.TurnRight(10.0f);
+      
+
+      float angle, leng;
+      leng = 500.0f * 2.0f * 3.1415926f;
+      angle = 360.0f / (leng / 10.0f);
+         /*cp.GetDirection(fDir, NULL);
+         actor.GetDirection(afDir, NULL);
+         for (int i = 0; i < 3; i++){
+            tempd[i] = fDir[i];
+            fDir[i] = afDir[i];
+         }
+         cp.SetDirection(fDir, NULL);
+         cp.TurnRight(angle);
+         for (int i = 0; i < 3; i++){
+            fDir[i] = tempd[i];
+         }
+         cp.SetDirection(fDir, NULL);*/
+      cp.TurnRight(angle);
+      actor.TurnRight(angle);
+      actor.MoveForward(10.0f);
    }
    if (FyCheckHotKeyStatus(FY_DOWN)){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
@@ -227,7 +265,12 @@ void GameAI(int skip)
             fDir[i] = afDir[i];
          }
          cp.SetDirection(fDir, NULL);
-         cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+         int wa2fl;
+         wa2fl = cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+         if (wa2fl == BLOCK){
+            actor.GetDirection(fDir, uDir);
+            actor.SetDirection(uDir, fDir);
+         }
          for (int i = 0; i < 3; i++){
             fDir[i] = tempd[i];
          }
@@ -326,6 +369,24 @@ void Movement(BYTE code, BOOL4 value)
       }
       else{
          actor.TurnRight(-180.0f);
+      }
+   }
+
+   if (code == FY_LEFT){
+      if (value) {
+         actor.TurnRight(-90.0f);
+      }
+      else{
+         actor.TurnRight(90.0f);
+      }
+   }
+
+   if (code == FY_RIGHT){
+      if (value) {
+         actor.TurnRight(90.0f);
+      }
+      else{
+         actor.TurnRight(-90.0f);
       }
    }
 }
