@@ -130,6 +130,22 @@ void FyMain(int argc, char **argv)
    cp.GetDirection(fDir, uDir);
    camera.SetDirection(fDir, uDir);
 
+   //
+   // set cp
+   float actpos[3], cppos[3];
+   actor.GetPosition(actpos);
+   actpos[2] += 100.0f;
+   actor.GetDirection(fDir, uDir);
+   cp.SetPosition(actpos);
+   cp.SetDirection(fDir, uDir);
+   cp.MoveForward(-500.0f);
+   cp.MoveUp(50.0f);
+   cp.GetPosition(cppos);
+   for (int i = 0; i < 3; i++){
+      fDir[i] = actpos[i] - cppos[i];
+   }
+   cp.SetDirection(fDir, NULL);
+
    // setup a point light
    FnLight lgt;
    lgt.ID(scene.CreateObject(LIGHT));
@@ -175,24 +191,25 @@ void GameAI(int skip)
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
 
    cp.ID(cpID);
-
-   // set cp
-   float actpos[3], cppos[3], fDir[3], uDir[3];
-   actor.GetPosition(actpos);
-   actpos[2] += 100.0f;
-   actor.GetDirection(fDir, uDir);
-   cp.SetPosition(actpos);
-   cp.SetDirection(fDir, uDir);
-   cp.MoveForward(-500.0f);
-   cp.MoveUp(50.0f);
-   cp.GetPosition(cppos);
-   for (int i = 0; i < 3; i++){
-      fDir[i] = actpos[i] - cppos[i];
-   }
-   cp.SetDirection(fDir, NULL);
+   float fDir[3], afDir[3], tempd[3];
+   int walkFlag;
    
    if (FyCheckHotKeyStatus(FY_UP)){
-      actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+      walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+      if (walkFlag == WALK){
+         cp.GetDirection(fDir, NULL);
+         actor.GetDirection(afDir, NULL);
+         for (int i = 0; i < 3; i++){
+            tempd[i] = fDir[i];
+            fDir[i] = afDir[i];
+         }
+         cp.SetDirection(fDir, NULL);
+         cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+         for (int i = 0; i < 3; i++){
+            fDir[i] = tempd[i];
+         }
+         cp.SetDirection(fDir, NULL);
+      }
    }
    if (FyCheckHotKeyStatus(FY_LEFT)){
       actor.TurnRight(-10.0f);
@@ -201,7 +218,21 @@ void GameAI(int skip)
       actor.TurnRight(10.0f);
    }
    if (FyCheckHotKeyStatus(FY_DOWN)){
-      actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+      walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+      if (walkFlag == WALK){
+         cp.GetDirection(fDir, NULL);
+         actor.GetDirection(afDir, NULL);
+         for (int i = 0; i < 3; i++){
+            tempd[i] = fDir[i];
+            fDir[i] = afDir[i];
+         }
+         cp.SetDirection(fDir, NULL);
+         cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+         for (int i = 0; i < 3; i++){
+            fDir[i] = tempd[i];
+         }
+         cp.SetDirection(fDir, NULL);
+      }
    }
 }
 
