@@ -27,6 +27,7 @@ int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
 
 float distance = 500.0f, height = 50.0f;
+char fff[256];
 
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
@@ -131,7 +132,6 @@ void FyMain(int argc, char **argv)
    cp.GetDirection(fDir, uDir);
    camera.SetDirection(fDir, uDir);
 
-   //
    // set cp
    float actpos[3], cppos[3];
    actor.GetPosition(actpos);
@@ -212,15 +212,19 @@ void GameAI(int skip)
       angle = 360.0f / (leng / speed);
       
       // let cp parellel to the ground
-      cp.GetDirection(fDir, NULL);
       actor.TurnRight(90.0f);
-      actor.GetDirection(afDir, NULL);
+      actor.GetDirection(afDir, auDir);
       actor.TurnRight(-90.0f);
-      cp.SetDirection(afDir, NULL);
-      cp.TurnRight(-angle);
-         
+      cp.SetDirection(afDir, auDir);
       actor.TurnRight(-angle);
-      actor.MoveForward(speed);
+      walkFlag = actor.MoveForward(speed, TRUE, FALSE, FALSE, FALSE);
+      if (walkFlag == WALK){
+         cp.TurnRight(-angle);
+      }
+      else{
+         cp.TurnRight(angle);
+         cp.MoveRight(speed);
+      }
 
       // set the camera direct to the actor
       cp.GetPosition(pos);
@@ -235,15 +239,20 @@ void GameAI(int skip)
       leng = distance * 2.0f * 3.1415926f;
       angle = 360.0f / (leng / speed);
       
-      cp.GetDirection(fDir, NULL);
       actor.TurnRight(-90.0f);
-      actor.GetDirection(afDir, NULL);
+      actor.GetDirection(afDir, auDir);
       actor.TurnRight(90.0f);
-      cp.SetDirection(afDir, NULL);
-      cp.TurnRight(angle);
+      cp.SetDirection(afDir, auDir);
          
       actor.TurnRight(angle);
-      actor.MoveForward(speed);
+      walkFlag = actor.MoveForward(speed, TRUE, FALSE, FALSE, FALSE);
+      if (walkFlag == WALK){
+         cp.TurnRight(angle);
+      }
+      else{
+         cp.TurnRight(-angle);
+         cp.MoveRight(-speed);
+      }
 
       cp.GetPosition(pos);
       actor.GetPosition(apos);
@@ -267,6 +276,23 @@ void GameAI(int skip)
          }
          cp.SetDirection(fDir, NULL);
       }
+   }
+
+   // adjust the distance of cp
+   if (curPoseID == idleID){
+      float actpos[3], cppos[3];
+      actor.GetPosition(actpos);
+      actpos[2] += 100.0f;
+      actor.GetDirection(fDir, uDir);
+      cp.SetPosition(actpos);
+      cp.SetDirection(fDir, uDir);
+      cp.MoveForward(-distance);
+      cp.MoveUp(height);
+      cp.GetPosition(cppos);
+      for (int i = 0; i < 3; i++){
+         fDir[i] = actpos[i] - cppos[i];
+      }
+      cp.SetDirection(fDir, NULL);
    }
 }
 
@@ -323,6 +349,7 @@ void RenderIt(int skip)
    text.Write(posS, 20, 35, 255, 255, 0);
    text.Write(fDirS, 20, 50, 255, 255, 0);
    text.Write(uDirS, 20, 65, 255, 255, 0);
+   text.Write(fff, 20, 80, 255, 255, 0);
 
    text.End();
 
