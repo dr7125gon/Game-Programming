@@ -26,6 +26,11 @@ TEXTid textID = FAILED_ID;
 // some globals
 int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
+int turnF = 0;
+int count = 0;
+int faceF = 0;
+int lrF = 0;
+float radius;
 
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
@@ -138,7 +143,8 @@ void FyMain(int argc, char **argv)
    actor.GetDirection(fDir, uDir);
    cp.SetPosition(actpos);
    cp.SetDirection(fDir, uDir);
-   cp.MoveForward(-500.0f);
+   radius=500.0f;
+   cp.MoveForward(-radius);
    cp.MoveUp(50.0f);
    cp.GetPosition(cppos);
    for (int i = 0; i < 3; i++){
@@ -193,8 +199,32 @@ void GameAI(int skip)
    cp.ID(cpID);
    float fDir[3], afDir[3], tempd[3];
    int walkFlag;
+
+   if(turnF==1&&count>0)
+   {
+	   if(lrF==0)
+	   {
+	     actor.TurnRight(10.0f);
+		 count--;
+		 if(count==0)
+		 {
+			turnF=0;
+		 }
+	   
+	   }else
+	   {
+		 actor.TurnRight(-10.0f);
+		 count--;
+		 if(count==0)
+		 {
+			turnF=0;
+		 }
+	   }
+   }
+
    
    if (FyCheckHotKeyStatus(FY_UP)){
+	 if(turnF==0){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
          cp.GetDirection(fDir, NULL);
@@ -210,29 +240,93 @@ void GameAI(int skip)
          }
          cp.SetDirection(fDir, NULL);
       }
+	}
    }
    if (FyCheckHotKeyStatus(FY_LEFT)){
-      actor.TurnRight(-10.0f);
+     if(turnF==0){
+	   float angle, leng;
+      leng = radius * 2.0f * 3.1415926f;
+      angle = 360.0f / (leng / 10.0f);
+      
+      actor.TurnRight(-angle);
+      int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+	  if(flg== WALK)
+	  {
+		
+		  actor.TurnRight(90.0f);
+		  
+		  
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  actor.GetPosition(atps);
+   atps[2] += 100.0f;
+   actor.GetDirection(ffdir, uudir);
+   cp.SetPosition(atps);
+   cp.SetDirection(ffdir, uudir);
+   radius=500.0f;
+   cp.MoveForward(-radius);
+   cp.MoveUp(50.0f);
+   cp.GetPosition(cps);
+   for (int i = 0; i < 3; i++){
+      ffdir[i] = atps[i] - cps[i];
+   }
+   cp.SetDirection(ffdir, NULL);
+
+
+		  actor.TurnRight(-90.0f);
+	   }
+     }
    }
    if (FyCheckHotKeyStatus(FY_RIGHT)){
-      actor.TurnRight(10.0f);
+     if(turnF==0){
+	   float angle, leng;
+      leng = radius * 2.0f * 3.1415926f;
+      angle = 360.0f / (leng / 10.0f);
+
+      actor.TurnRight(angle);
+      int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+	  if(flg== WALK)
+	  {
+		 actor.TurnRight(-90.0f);
+		  
+		  
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  actor.GetPosition(atps);
+		  atps[2] += 100.0f;
+          actor.GetDirection(ffdir, uudir);
+          cp.SetPosition(atps);
+          cp.SetDirection(ffdir, uudir);
+          radius=500.0f;
+		  cp.MoveForward(-radius);
+          cp.MoveUp(50.0f);
+          cp.GetPosition(cps);
+          for (int i = 0; i < 3; i++){
+            ffdir[i] = atps[i] - cps[i];
+          }
+          cp.SetDirection(ffdir, NULL);
+
+
+		  actor.TurnRight(90.0f);
+	  }
+     }
    }
    if (FyCheckHotKeyStatus(FY_DOWN)){
-      walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-      if (walkFlag == WALK){
-         cp.GetDirection(fDir, NULL);
-         actor.GetDirection(afDir, NULL);
-         for (int i = 0; i < 3; i++){
-            tempd[i] = fDir[i];
-            fDir[i] = afDir[i];
-         }
-         cp.SetDirection(fDir, NULL);
-         cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-         for (int i = 0; i < 3; i++){
-            fDir[i] = tempd[i];
-         }
-         cp.SetDirection(fDir, NULL);
-      }
+	   if(turnF==0){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			if (walkFlag == WALK){
+				cp.GetDirection(fDir, NULL);
+				actor.GetDirection(afDir, NULL);
+				for (int i = 0; i < 3; i++){
+					tempd[i] = fDir[i];
+					fDir[i] = afDir[i];
+				}
+				cp.SetDirection(fDir, NULL);
+				cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+				for (int i = 0; i < 3; i++){
+					fDir[i] = tempd[i];
+				}
+				cp.SetDirection(fDir, NULL);
+			}
+	   }
    }
 }
 
@@ -320,14 +414,99 @@ void Movement(BYTE code, BOOL4 value)
       actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
    }
 
-   if (code == FY_DOWN){
+   
+   if (code == FY_UP){
       if (value) {
-         actor.TurnRight(180.0f);
-      }
-      else{
-         actor.TurnRight(-180.0f);
+		 
+		 if(faceF==1)
+		 {
+			turnF=1;
+			lrF=0;
+			count=18;
+		 }else if(faceF==2)
+		 {
+			turnF=1;
+			lrF=1;
+			count=9;
+		 }else if(faceF==3)
+		 {
+			turnF=1;
+			lrF=0;
+			count=9;
+		 }
+		 faceF=0;
       }
    }
+
+   if (code == FY_DOWN){
+      if (value) {
+		 
+		 if(faceF==0)
+		 {
+			turnF=1;
+			lrF=0;
+			count=18;
+		 }else if(faceF==2)
+		 {
+			turnF=1;
+			lrF=0;
+			count=9;
+		 }else if(faceF==3)
+		 {
+			turnF=1;
+			lrF=1;
+			count=9;
+		 }
+		 faceF=1;
+      }
+   }
+
+   if (code == FY_RIGHT){
+      if (value) {
+		 
+		 if(faceF==1)
+		 {
+			turnF=1;
+			lrF=1;
+			count=9;
+		 }else if(faceF==0)
+		 {
+			turnF=1;
+			lrF=0;
+			count=9;
+		 }else if(faceF==3)
+		 {
+			turnF=1;
+			lrF=0;
+			count=18;
+		 }
+		 faceF=2;
+      }
+   }
+
+   if (code == FY_LEFT){
+      if (value) {
+		 
+		 if(faceF==1)
+		 {
+			turnF=1;
+			lrF=0;
+			count=9;
+		 }else if(faceF==2)
+		 {
+			turnF=1;
+			lrF=1;
+			count=18;
+		 }else if(faceF==0)
+		 {
+			turnF=1;
+			lrF=1;
+			count=9;
+		 }
+		 faceF=3;
+      }
+   }
+  
 }
 
 
