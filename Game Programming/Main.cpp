@@ -14,7 +14,6 @@
  ===============================================================*/
 #include "FlyWin32.h"
 
-
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
 OBJECTid cID, tID, cpID;              // the main camera and the terrain for terrain following
@@ -26,6 +25,8 @@ TEXTid textID = FAILED_ID;
 // some globals
 int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
+
+float distance = 500.0f, height = 50.0f;
 
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
@@ -138,8 +139,8 @@ void FyMain(int argc, char **argv)
    actor.GetDirection(fDir, uDir);
    cp.SetPosition(actpos);
    cp.SetDirection(fDir, uDir);
-   cp.MoveForward(-500.0f);
-   cp.MoveUp(50.0f);
+   cp.MoveForward(-distance);
+   cp.MoveUp(height);
    cp.GetPosition(cppos);
    for (int i = 0; i < 3; i++){
       fDir[i] = actpos[i] - cppos[i];
@@ -192,6 +193,8 @@ void GameAI(int skip)
 
    cp.ID(cpID);
    float fDir[3], afDir[3], auDir[3], tfDir[3], tuDir[3], uDir[3], apos[3], pos[3];
+   float angle, leng;
+   float speed = 10.0f;
    int walkFlag;
    
    if (FyCheckHotKeyStatus(FY_UP)){
@@ -200,64 +203,64 @@ void GameAI(int skip)
          cp.GetDirection(fDir, NULL);
          actor.GetDirection(afDir, NULL);
          cp.SetDirection(afDir, NULL);
-         cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+         cp.MoveForward(speed, TRUE, FALSE, FALSE, FALSE);
          cp.SetDirection(fDir, NULL);
       }
    }
    if (FyCheckHotKeyStatus(FY_LEFT)){
-      float angle, leng;
-      leng = 500.0f * 2.0f * 3.1415926f;
-      angle = 360.0f / (leng / 10.0f);
-         cp.GetDirection(fDir, NULL);
-         actor.TurnRight(90.0f);
-         actor.GetDirection(afDir, NULL);
-         actor.TurnRight(-90.0f);
-         cp.SetDirection(afDir, NULL);
-         cp.TurnRight(-angle);
+      leng = distance * 2.0f * 3.1415926f;
+      angle = 360.0f / (leng / speed);
+      
+      // let cp parellel to the ground
+      cp.GetDirection(fDir, NULL);
+      actor.TurnRight(90.0f);
+      actor.GetDirection(afDir, NULL);
+      actor.TurnRight(-90.0f);
+      cp.SetDirection(afDir, NULL);
+      cp.TurnRight(-angle);
          
       actor.TurnRight(-angle);
-      actor.MoveForward(10.0f);
+      actor.MoveForward(speed);
 
-         cp.GetPosition(pos);
-         actor.GetPosition(apos);
-         apos[2] += 100.0f;
-         for (int i = 0; i < 3; i++){
-            fDir[i] = apos[i] - pos[i];
-         }
-         cp.SetDirection(fDir, NULL);
+      // set the camera direct to the actor
+      cp.GetPosition(pos);
+      actor.GetPosition(apos);
+      apos[2] += 100.0f;
+      for (int i = 0; i < 3; i++){
+         fDir[i] = apos[i] - pos[i];
+      }
+      cp.SetDirection(fDir, NULL);
    }
    if (FyCheckHotKeyStatus(FY_RIGHT)){
+      leng = distance * 2.0f * 3.1415926f;
+      angle = 360.0f / (leng / speed);
       
-
-      float angle, leng;
-      leng = 500.0f * 2.0f * 3.1415926f;
-      angle = 360.0f / (leng / 10.0f);
-         cp.GetDirection(fDir, NULL);
-         actor.TurnRight(-90.0f);
-         actor.GetDirection(afDir, NULL);
-         actor.TurnRight(90.0f);
-         cp.SetDirection(afDir, NULL);
-         cp.TurnRight(angle);
+      cp.GetDirection(fDir, NULL);
+      actor.TurnRight(-90.0f);
+      actor.GetDirection(afDir, NULL);
+      actor.TurnRight(90.0f);
+      cp.SetDirection(afDir, NULL);
+      cp.TurnRight(angle);
          
       actor.TurnRight(angle);
-      actor.MoveForward(10.0f);
+      actor.MoveForward(speed);
 
-         cp.GetPosition(pos);
-         actor.GetPosition(apos);
-         apos[2] += 100.0f;
-         for (int i = 0; i < 3; i++){
-            fDir[i] = apos[i] - pos[i];
-         }
-         cp.SetDirection(fDir, NULL);
+      cp.GetPosition(pos);
+      actor.GetPosition(apos);
+      apos[2] += 100.0f;
+      for (int i = 0; i < 3; i++){
+         fDir[i] = apos[i] - pos[i];
+      }
+      cp.SetDirection(fDir, NULL);
    }
    if (FyCheckHotKeyStatus(FY_DOWN)){
-      walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+      walkFlag = actor.MoveForward(speed, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
          cp.GetDirection(fDir, NULL);
          actor.GetDirection(afDir, NULL);
          cp.SetDirection(afDir, NULL);
          int wa2fl;
-         wa2fl = cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+         wa2fl = cp.MoveForward(speed, TRUE, FALSE, FALSE, FALSE);
          if (wa2fl == BLOCK){
             actor.GetDirection(fDir, uDir);
             actor.SetDirection(uDir, fDir);
