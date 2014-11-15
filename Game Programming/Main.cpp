@@ -13,6 +13,7 @@
   Last Updated : 1010, 2014, Kevin C. Wang
  ===============================================================*/
 #include "FlyWin32.h"
+#include <math.h>
 
 
 VIEWPORTid vID;                 // the major viewport
@@ -30,7 +31,11 @@ int turnF = 0;
 int count = 0;
 int faceF = 0;
 int lrF = 0;
+int upF = 0 ;
 float radius;
+float height;
+FnObject terrain;
+float constant=502.49f;
 
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
@@ -79,7 +84,7 @@ void FyMain(int argc, char **argv)
 
    // load the terrain
    tID = scene.CreateObject(OBJECT);
-   FnObject terrain;
+   
    terrain.ID(tID);
    BOOL beOK1 = terrain.Load("terrain");
    terrain.Show(FALSE);
@@ -144,8 +149,9 @@ void FyMain(int argc, char **argv)
    cp.SetPosition(actpos);
    cp.SetDirection(fDir, uDir);
    radius=500.0f;
+   height=50.0f;
    cp.MoveForward(-radius);
-   cp.MoveUp(50.0f);
+   cp.MoveUp(height);
    cp.GetPosition(cppos);
    for (int i = 0; i < 3; i++){
       fDir[i] = actpos[i] - cppos[i];
@@ -209,6 +215,16 @@ void GameAI(int skip)
 		 if(count==0)
 		 {
 			turnF=0;
+
+			if (!FyCheckHotKeyStatus(FY_UP) &&
+          !FyCheckHotKeyStatus(FY_LEFT) &&
+          !FyCheckHotKeyStatus(FY_RIGHT) &&
+		  !FyCheckHotKeyStatus(FY_DOWN)){
+			curPoseID = idleID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+			
+			}
+
 		 }
 	   
 	   }else
@@ -218,6 +234,15 @@ void GameAI(int skip)
 		 if(count==0)
 		 {
 			turnF=0;
+
+			if (!FyCheckHotKeyStatus(FY_UP) &&
+          !FyCheckHotKeyStatus(FY_LEFT) &&
+          !FyCheckHotKeyStatus(FY_RIGHT) &&
+		  !FyCheckHotKeyStatus(FY_DOWN)){
+			curPoseID = idleID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+			
+			}
 		 }
 	   }
    }
@@ -227,6 +252,41 @@ void GameAI(int skip)
 	 if(turnF==0){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
+
+		  if(upF==1){
+				
+					if(radius<=490.0f){
+					radius+=10.0f;
+						if(radius==500.0f)
+							upF=0;
+					}
+					height=sqrt((constant)*(constant)-(radius)*(radius));
+
+					
+		  
+		  
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  actor.GetPosition(atps);
+   atps[2] += 100.0f;
+   actor.GetDirection(ffdir, uudir);
+   cp.SetPosition(atps);
+   cp.SetDirection(ffdir, uudir);
+   cp.MoveForward(-radius);
+   cp.MoveUp(height);
+   cp.GetPosition(cps);
+   for (int i = 0; i < 3; i++){
+      ffdir[i] = atps[i] - cps[i];
+   }
+   cp.SetDirection(ffdir, NULL);
+
+
+
+				
+				
+				}else{
+
+
+
          cp.GetDirection(fDir, NULL);
          actor.GetDirection(afDir, NULL);
          for (int i = 0; i < 3; i++){
@@ -239,6 +299,7 @@ void GameAI(int skip)
             fDir[i] = tempd[i];
          }
          cp.SetDirection(fDir, NULL);
+	   }
       }
 	}
    }
@@ -261,9 +322,8 @@ void GameAI(int skip)
    actor.GetDirection(ffdir, uudir);
    cp.SetPosition(atps);
    cp.SetDirection(ffdir, uudir);
-   radius=500.0f;
    cp.MoveForward(-radius);
-   cp.MoveUp(50.0f);
+   cp.MoveUp(height);
    cp.GetPosition(cps);
    for (int i = 0; i < 3; i++){
       ffdir[i] = atps[i] - cps[i];
@@ -293,9 +353,8 @@ void GameAI(int skip)
           actor.GetDirection(ffdir, uudir);
           cp.SetPosition(atps);
           cp.SetDirection(ffdir, uudir);
-          radius=500.0f;
 		  cp.MoveForward(-radius);
-          cp.MoveUp(50.0f);
+          cp.MoveUp(height);
           cp.GetPosition(cps);
           for (int i = 0; i < 3; i++){
             ffdir[i] = atps[i] - cps[i];
@@ -311,6 +370,37 @@ void GameAI(int skip)
 	   if(turnF==0){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
+				if(upF==1){
+				
+					if(radius>=10.0f){
+					radius-=10.0f;
+					}
+					height=sqrt((constant)*(constant)-(radius)*(radius));
+
+					actor.TurnRight(180.0f);
+		  
+		  
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  actor.GetPosition(atps);
+   atps[2] += 100.0f;
+   actor.GetDirection(ffdir, uudir);
+   cp.SetPosition(atps);
+   cp.SetDirection(ffdir, uudir);
+   cp.MoveForward(-radius);
+   cp.MoveUp(height);
+   cp.GetPosition(cps);
+   for (int i = 0; i < 3; i++){
+      ffdir[i] = atps[i] - cps[i];
+   }
+   cp.SetDirection(ffdir, NULL);
+
+
+		  actor.TurnRight(-180.0f);
+
+
+				
+				
+				}else{
 				cp.GetDirection(fDir, NULL);
 				actor.GetDirection(afDir, NULL);
 				for (int i = 0; i < 3; i++){
@@ -323,6 +413,35 @@ void GameAI(int skip)
 					fDir[i] = tempd[i];
 				}
 				cp.SetDirection(fDir, NULL);
+
+
+				     float dirt[3], origint[3];                  // origin is the camera¡¦s position
+     dirt[0] = 0.0f;
+     dirt[1] = 0.0f;
+     dirt[2] = -1.0f;
+	 cp.GetPosition(origint);
+
+     if (terrain.HitTest(origint, dirt) > 0) {
+        // the camera is on terrain
+     }
+     else {
+         // the camera is not on the terrain
+
+		 cp.GetDirection(fDir, NULL);
+				actor.GetDirection(afDir, NULL);
+				for (int i = 0; i < 3; i++){
+					tempd[i] = fDir[i];
+					fDir[i] = afDir[i];
+				}
+				cp.SetDirection(fDir, NULL);
+				cp.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
+				for (int i = 0; i < 3; i++){
+					fDir[i] = tempd[i];
+				}
+				cp.SetDirection(fDir, NULL);
+				upF=1;
+	 }
+			}
 			}
 	   }
    }
@@ -407,7 +526,7 @@ void Movement(BYTE code, BOOL4 value)
    else if (!FyCheckHotKeyStatus(FY_UP) &&
           !FyCheckHotKeyStatus(FY_LEFT) &&
           !FyCheckHotKeyStatus(FY_RIGHT) &&
-          !FyCheckHotKeyStatus(FY_DOWN) ) {
+          !FyCheckHotKeyStatus(FY_DOWN)&&!turnF ) {
       curPoseID = idleID;
       actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
    }
@@ -415,8 +534,7 @@ void Movement(BYTE code, BOOL4 value)
    
    if (code == FY_UP){
       if (value) {
-		 
-		 if(faceF==1)
+		  if(faceF==1)
 		 {
 			turnF=1;
 			lrF=0;
