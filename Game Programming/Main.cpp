@@ -250,8 +250,7 @@ void GameAI(int skip)
       
       actor.TurnRight(-angle);
       int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-	  if(flg== WALK)
-	  {
+	 
 		
 		  actor.TurnRight(90.0f);
 		  
@@ -273,7 +272,7 @@ void GameAI(int skip)
 
 
 		  actor.TurnRight(-90.0f);
-	   }
+	 
      }
    }
    if (FyCheckHotKeyStatus(FY_RIGHT)){
@@ -284,8 +283,7 @@ void GameAI(int skip)
 
       actor.TurnRight(angle);
       int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-	  if(flg== WALK)
-	  {
+	 
 		 actor.TurnRight(-90.0f);
 		  
 		  
@@ -306,7 +304,7 @@ void GameAI(int skip)
 
 
 		  actor.TurnRight(90.0f);
-	  }
+	  
      }
    }
    if (FyCheckHotKeyStatus(FY_DOWN)){
