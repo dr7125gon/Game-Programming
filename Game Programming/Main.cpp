@@ -34,8 +34,12 @@ int lrF = 0;
 int upF = 0 ;
 float radius;
 float height;
-FnObject terrain;
 float constant=502.49f;
+int upingF=0;
+int upingDir=0;
+FnCharacter actor;
+FnObject cp;
+FnObject terrain;
 
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
@@ -57,6 +61,54 @@ void ZoomCam(int, int);
   the main program
   C.Wang 1010, 2014
  -------------------*/
+
+void pushCemara()
+{
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+	      actor.GetPosition(atps);
+	      atps[2] += 100.0f;
+	      actor.GetDirection(ffdir, uudir);
+          cp.SetPosition(atps);
+          cp.SetDirection(ffdir, uudir);
+          cp.MoveForward(-radius);
+          cp.MoveUp(height);
+          cp.GetPosition(cps);
+          for (int i = 0; i < 3; i++){
+             ffdir[i] = atps[i] - cps[i];
+          }
+          cp.SetDirection(ffdir, NULL);
+}
+
+void pushCemaraOrg()
+{
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+	      actor.GetPosition(atps);
+	      atps[2] += 100.0f;
+	      actor.GetDirection(ffdir, uudir);
+          cp.SetPosition(atps);
+          cp.SetDirection(ffdir, uudir);
+          cp.MoveForward(-500);
+          cp.MoveUp(50);
+          cp.GetPosition(cps);
+          for (int i = 0; i < 3; i++){
+             ffdir[i] = atps[i] - cps[i];
+          }
+          cp.SetDirection(ffdir, NULL);
+}
+
+
+int testHit()
+{
+	 float dirt[3], origint[3];  
+     dirt[0] = 0.0f;
+     dirt[1] = 0.0f;
+     dirt[2] = -1.0f;
+	 cp.GetPosition(origint);
+
+	 return(terrain.HitTest(origint, dirt));
+}
+
+
 void FyMain(int argc, char **argv)
 {
    // create a new world
@@ -103,7 +155,7 @@ void FyMain(int argc, char **argv)
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
-   FnCharacter actor;
+   
    actor.ID(actorID);
    pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
    fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
@@ -131,7 +183,7 @@ void FyMain(int argc, char **argv)
    camera.SetFarPlane(100000.0f);
 
    // camera parent for transmation cnotrol
-   FnObject cp;
+  
    cpID = scene.CreateObject(OBJECT);
    cp.ID(cpID);
    camera.SetParent(cpID);
@@ -206,7 +258,7 @@ void GameAI(int skip)
    float fDir[3], afDir[3], tempd[3];
    int walkFlag;
 
-   if(turnF==1&&count>0)
+   if((turnF==1&&count>0)&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_LEFT))&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_RIGHT))&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_DOWN))&&!(FyCheckHotKeyStatus(FY_RIGHT)&&FyCheckHotKeyStatus(FY_DOWN))&&!(FyCheckHotKeyStatus(FY_RIGHT)&&FyCheckHotKeyStatus(FY_LEFT))&&!(FyCheckHotKeyStatus(FY_DOWN)&&FyCheckHotKeyStatus(FY_LEFT)))
    {
 	   if(lrF==0)
 	   {
@@ -248,8 +300,8 @@ void GameAI(int skip)
    }
 
    
-   if (FyCheckHotKeyStatus(FY_UP)){
-	 if(turnF==0){
+   if ((faceF==0)&&FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
+	 if((turnF==0)&&(upingF==0)){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
 
@@ -262,186 +314,163 @@ void GameAI(int skip)
 					}
 					height=sqrt((constant)*(constant)-(radius)*(radius));
 
-					
-		  
-		  
-		  float atps[3], cps[3],ffdir[3],uudir[3];
-		  actor.GetPosition(atps);
-   atps[2] += 100.0f;
-   actor.GetDirection(ffdir, uudir);
-   cp.SetPosition(atps);
-   cp.SetDirection(ffdir, uudir);
-   cp.MoveForward(-radius);
-   cp.MoveUp(height);
-   cp.GetPosition(cps);
-   for (int i = 0; i < 3; i++){
-      ffdir[i] = atps[i] - cps[i];
-   }
-   cp.SetDirection(ffdir, NULL);
-
-
-
-				
-				
-				}else{
-
-
-
-         cp.GetDirection(fDir, NULL);
-         actor.GetDirection(afDir, NULL);
-         for (int i = 0; i < 3; i++){
-            tempd[i] = fDir[i];
-            fDir[i] = afDir[i];
-         }
-         cp.SetDirection(fDir, NULL);
-         cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-         for (int i = 0; i < 3; i++){
-            fDir[i] = tempd[i];
-         }
-         cp.SetDirection(fDir, NULL);
-	   }
+					pushCemara();
+		  }else{
+					pushCemara();
+		  }
       }
 	}
    }
-   if (FyCheckHotKeyStatus(FY_LEFT)){
-     if(turnF==0){
-	   float angle, leng;
-      leng = radius * 2.0f * 3.1415926f;
-      angle = 360.0f / (leng / 10.0f);
+
+   if(upingF==1){
+		if(radius>10.0f){
+			 radius-=10.0f;
+		}
+		height=sqrt((constant)*(constant)-(radius)*(radius));
+		if(upingDir==0)
+		{
+			actor.TurnRight(90.0f);
+		}else
+		{
+			actor.TurnRight(-90.0f);
+		}
+
+		pushCemara();
+		 
+		if(upingDir==0)
+		{
+			actor.TurnRight(-90.0f);
+		}else
+		{
+			actor.TurnRight(90.0f);
+		}
+		if (testHit()>0) {
+			upingF=0;
+		}
+		upF=1;
+   }
+
+
+
+   if ((faceF==3)&&!FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
+     if((turnF==0)&&(upingF==0)){
+			float angle, leng;
+			leng = radius * 2.0f * 3.1415926f;
+			angle = 360.0f / (leng / 10.0f);
       
-      actor.TurnRight(-angle);
-      int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-	 
+			actor.TurnRight(-angle);
+			int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+		 
 		
 		  actor.TurnRight(90.0f);
 		  
-		  
-		  float atps[3], cps[3],ffdir[3],uudir[3];
-		  actor.GetPosition(atps);
-   atps[2] += 100.0f;
-   actor.GetDirection(ffdir, uudir);
-   cp.SetPosition(atps);
-   cp.SetDirection(ffdir, uudir);
-   cp.MoveForward(-radius);
-   cp.MoveUp(height);
-   cp.GetPosition(cps);
-   for (int i = 0; i < 3; i++){
-      ffdir[i] = atps[i] - cps[i];
-   }
-   cp.SetDirection(ffdir, NULL);
-
+		  pushCemara();
 
 		  actor.TurnRight(-90.0f);
-	 
+
+		if (testHit()<=0) {
+			upingF=1;
+			upingDir=0;
+		}
+	   
      }
    }
-   if (FyCheckHotKeyStatus(FY_RIGHT)){
-     if(turnF==0){
-	   float angle, leng;
-      leng = radius * 2.0f * 3.1415926f;
-      angle = 360.0f / (leng / 10.0f);
-
-      actor.TurnRight(angle);
-      int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-	 
-		 actor.TurnRight(-90.0f);
+  
+   if ((faceF==2)&&!FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&FyCheckHotKeyStatus(FY_RIGHT)){
+     if((turnF==0)&&(upingF==0)){
+			float angle, leng;
+			leng = radius * 2.0f * 3.1415926f;
+			angle = 360.0f / (leng / 10.0f);
+      
+			actor.TurnRight(angle);
+			int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+		 
+		
+		  actor.TurnRight(-90.0f);
 		  
-		  
-		  float atps[3], cps[3],ffdir[3],uudir[3];
-		  actor.GetPosition(atps);
-		  atps[2] += 100.0f;
-          actor.GetDirection(ffdir, uudir);
-          cp.SetPosition(atps);
-          cp.SetDirection(ffdir, uudir);
-		  cp.MoveForward(-radius);
-          cp.MoveUp(height);
-          cp.GetPosition(cps);
-          for (int i = 0; i < 3; i++){
-            ffdir[i] = atps[i] - cps[i];
-          }
-          cp.SetDirection(ffdir, NULL);
-
+		  pushCemara();
 
 		  actor.TurnRight(90.0f);
-	  
+
+		if (testHit()<=0) {
+			upingF=1;
+			upingDir=1;
+		}
+	   
      }
    }
-   if (FyCheckHotKeyStatus(FY_DOWN)){
-	   if(turnF==0){
+
+
+
+
+
+
+
+   if ((faceF==1)&&!FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
+	   if((turnF==0)&&(upingF==0)){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 				if(upF==1){
 				
-					if(radius>=10.0f){
-					radius-=10.0f;
+					int localFlag;
+					
+					float tmpD[3],tmpP[3];
+					cp.GetDirection(tmpD, NULL);
+					cp.GetPosition(tmpP, NULL);
+					
+					actor.TurnRight(180.0f);
+		  
+					pushCemaraOrg();
+
+					if (testHit() <= 0) {
+						localFlag=0;
+					}else
+					{
+						localFlag=1;
 					}
-					height=sqrt((constant)*(constant)-(radius)*(radius));
+					
+					cp.SetDirection(tmpD, NULL);
+					cp.SetPosition(tmpP, NULL);
+					
+					if(localFlag==0)
+					{
+						if(radius>10.0f){
+							radius-=10.0f;
+						}
+						height=sqrt((constant)*(constant)-(radius)*(radius));
+					}else
+					{
+						if(radius<=490.0f){
+							radius+=10.0f;
+							if(radius==500.0f)
+								upF=0;
+						}
+						height=sqrt((constant)*(constant)-(radius)*(radius));
+					}
+					
+					pushCemara();
+					actor.TurnRight(-180.0f);
+
+				}else{
+
+					float tmpD[3],tmpP[3];
+					cp.GetDirection(tmpD, NULL);
+					cp.GetPosition(tmpP, NULL);
 
 					actor.TurnRight(180.0f);
 		  
-		  
-		  float atps[3], cps[3],ffdir[3],uudir[3];
-		  actor.GetPosition(atps);
-   atps[2] += 100.0f;
-   actor.GetDirection(ffdir, uudir);
-   cp.SetPosition(atps);
-   cp.SetDirection(ffdir, uudir);
-   cp.MoveForward(-radius);
-   cp.MoveUp(height);
-   cp.GetPosition(cps);
-   for (int i = 0; i < 3; i++){
-      ffdir[i] = atps[i] - cps[i];
-   }
-   cp.SetDirection(ffdir, NULL);
+					pushCemara();
 
+					if (testHit() <= 0) {
 
-		  actor.TurnRight(-180.0f);
+						cp.SetDirection(tmpD, NULL);
+						cp.SetPosition(tmpP, NULL);
+						actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+						upF=1;
+					}
 
-
-				
-				
-				}else{
-				cp.GetDirection(fDir, NULL);
-				actor.GetDirection(afDir, NULL);
-				for (int i = 0; i < 3; i++){
-					tempd[i] = fDir[i];
-					fDir[i] = afDir[i];
+					actor.TurnRight(-180.0f);
 				}
-				cp.SetDirection(fDir, NULL);
-				cp.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-				for (int i = 0; i < 3; i++){
-					fDir[i] = tempd[i];
-				}
-				cp.SetDirection(fDir, NULL);
-
-
-				     float dirt[3], origint[3];                  // origin is the camera¡¦s position
-     dirt[0] = 0.0f;
-     dirt[1] = 0.0f;
-     dirt[2] = -1.0f;
-	 cp.GetPosition(origint);
-
-     if (terrain.HitTest(origint, dirt) > 0) {
-        // the camera is on terrain
-     }
-     else {
-         // the camera is not on the terrain
-
-		 cp.GetDirection(fDir, NULL);
-				actor.GetDirection(afDir, NULL);
-				for (int i = 0; i < 3; i++){
-					tempd[i] = fDir[i];
-					fDir[i] = afDir[i];
-				}
-				cp.SetDirection(fDir, NULL);
-				cp.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
-				for (int i = 0; i < 3; i++){
-					fDir[i] = tempd[i];
-				}
-				cp.SetDirection(fDir, NULL);
-				upF=1;
-	 }
-			}
 			}
 	   }
    }
@@ -492,14 +521,16 @@ void RenderIt(int skip)
    text.Begin(vID);
    text.Write(string, 20, 20, 255, 0, 0);
 
-   char posS[256], fDirS[256], uDirS[256];
+   char posS[256], fDirS[256], uDirS[256],rtest[256];
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
    sprintf(uDirS, "up: %8.3f %8.3f %8.3f", uDir[0], uDir[1], uDir[2]);
+   //sprintf(rtest, "upingF %d",upingF);
 
    text.Write(posS, 20, 35, 255, 255, 0);
    text.Write(fDirS, 20, 50, 255, 255, 0);
    text.Write(uDirS, 20, 65, 255, 255, 0);
+   //text.Write(rtest, 20, 85, 255, 255, 0);
 
    text.End();
 
@@ -516,6 +547,7 @@ void Movement(BYTE code, BOOL4 value)
 {
    FnCharacter actor;
    actor.ID(actorID);
+  
 
    if (value) {
       if (curPoseID != runID){
@@ -534,92 +566,97 @@ void Movement(BYTE code, BOOL4 value)
    
    if (code == FY_UP){
       if (value) {
-		  if(faceF==1)
-		 {
-			turnF=1;
-			lrF=0;
-			count=18;
-		 }else if(faceF==2)
-		 {
-			turnF=1;
-			lrF=1;
-			count=9;
-		 }else if(faceF==3)
-		 {
-			turnF=1;
-			lrF=0;
-			count=9;
-		 }
-		 faceF=0;
+		  if(turnF==0){
+			 if(faceF==1)
+			{
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(faceF==2)
+			{
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(faceF==3)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}
+			faceF=0;
+		}
       }
    }
 
    if (code == FY_DOWN){
       if (value) {
-		 
-		 if(faceF==0)
-		 {
-			turnF=1;
-			lrF=0;
-			count=18;
-		 }else if(faceF==2)
-		 {
-			turnF=1;
-			lrF=0;
-			count=9;
-		 }else if(faceF==3)
-		 {
-			turnF=1;
-			lrF=1;
-			count=9;
+		 if(turnF==0){
+			if(faceF==0)
+			{
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(faceF==2)
+			{
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(faceF==3)
+			{
+				turnF=1;
+				lrF=1;
+				count=9;
+			}
+			faceF=1;
 		 }
-		 faceF=1;
       }
    }
 
    if (code == FY_RIGHT){
       if (value) {
-		 
-		 if(faceF==1)
-		 {
-			turnF=1;
-			lrF=1;
-			count=9;
-		 }else if(faceF==0)
-		 {
-			turnF=1;
-			lrF=0;
-			count=9;
-		 }else if(faceF==3)
-		 {
-			turnF=1;
-			lrF=0;
-			count=18;
+		 if(turnF==0){
+			if(faceF==1)
+			{
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(faceF==0)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(faceF==3)
+			 {
+				turnF=1;
+				lrF=0;
+				count=18;
+			}
+			faceF=2;
 		 }
-		 faceF=2;
       }
    }
 
    if (code == FY_LEFT){
       if (value) {
-		 
-		 if(faceF==1)
-		 {
-			turnF=1;
-			lrF=0;
-			count=9;
-		 }else if(faceF==2)
-		 {
-			turnF=1;
-			lrF=1;
-			count=18;
-		 }else if(faceF==0)
-		 {
-			turnF=1;
-			lrF=1;
-			count=9;
+		 if(turnF==0){
+			if(faceF==1)
+			{
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(faceF==2)
+			{
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(faceF==0)
+			{
+				turnF=1;
+				lrF=1;
+				count=9;
+			}
+			faceF=3;
 		 }
-		 faceF=3;
       }
    }
   
@@ -737,3 +774,4 @@ void ZoomCam(int x, int y)
       oldYMM = y;
    }
 }
+
