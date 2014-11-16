@@ -394,7 +394,7 @@ void GameAI(int skip)
 
 	  }else
 	  {
-		  if(zoneCounter>=(int)(zone/10.0f))
+		  //if(zoneCounter>=(int)(zone/10.0f))
 			zoneFlag=2;
 	  }
 
