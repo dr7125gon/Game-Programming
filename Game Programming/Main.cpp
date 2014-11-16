@@ -35,8 +35,12 @@ int upF = 0 ;
 float radius;
 float height;
 float constant=502.49f;
+float zone;
+float percent=0.5f;
 int upingF=0;
 int upingDir=0;
+int zoneFlag = 0;
+int zoneCounter = 0;
 FnCharacter actor;
 FnObject cp;
 FnObject terrain;
@@ -79,6 +83,27 @@ void pushCemara()
           cp.SetDirection(ffdir, NULL);
 }
 
+void pushCemaraLR()
+{
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  actor.MoveForward(-zoneCounter*10.0f);
+
+	      actor.GetPosition(atps);
+	      atps[2] += 100.0f;
+	      actor.GetDirection(ffdir, uudir);
+          cp.SetPosition(atps);
+          cp.SetDirection(ffdir, uudir);
+          cp.MoveForward(-radius);
+          cp.MoveUp(height);
+          cp.GetPosition(cps);
+          for (int i = 0; i < 3; i++){
+             ffdir[i] = atps[i] - cps[i];
+          }
+          cp.SetDirection(ffdir, NULL);
+
+		  actor.MoveForward(zoneCounter*10.0f);
+}
+
 void pushCemaraOrg()
 {
 		  float atps[3], cps[3],ffdir[3],uudir[3];
@@ -96,6 +121,51 @@ void pushCemaraOrg()
           cp.SetDirection(ffdir, NULL);
 }
 
+void pushCemaraUp()
+{
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  
+		  actor.MoveForward(-(zone-10.0f));
+		  
+	      actor.GetPosition(atps);
+	      atps[2] += 100.0f;
+	      actor.GetDirection(ffdir, uudir);
+          cp.SetPosition(atps);
+          cp.SetDirection(ffdir, uudir);
+          cp.MoveForward(-radius);
+          cp.MoveUp(height);
+          cp.GetPosition(cps);
+          for (int i = 0; i < 3; i++){
+             ffdir[i] = atps[i] - cps[i];
+          }
+          cp.SetDirection(ffdir, NULL);
+
+		  actor.MoveForward(zone);
+
+}
+
+void pushCemaraUp2()
+{
+		  float atps[3], cps[3],ffdir[3],uudir[3];
+		  
+		  actor.MoveForward(-(10.0f*(zoneCounter-1)));
+		  
+	      actor.GetPosition(atps);
+	      atps[2] += 100.0f;
+	      actor.GetDirection(ffdir, uudir);
+          cp.SetPosition(atps);
+          cp.SetDirection(ffdir, uudir);
+          cp.MoveForward(-radius);
+          cp.MoveUp(height);
+          cp.GetPosition(cps);
+          for (int i = 0; i < 3; i++){
+             ffdir[i] = atps[i] - cps[i];
+          }
+          cp.SetDirection(ffdir, NULL);
+
+		  actor.MoveForward(10.0f*(zoneCounter-1));
+
+}
 
 int testHit()
 {
@@ -202,6 +272,7 @@ void FyMain(int argc, char **argv)
    cp.SetDirection(fDir, uDir);
    radius=500.0f;
    height=50.0f;
+   zone=radius*percent;
    cp.MoveForward(-radius);
    cp.MoveUp(height);
    cp.GetPosition(cppos);
@@ -260,6 +331,12 @@ void GameAI(int skip)
 
    if((turnF==1&&count>0)&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_LEFT))&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_RIGHT))&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_DOWN))&&!(FyCheckHotKeyStatus(FY_RIGHT)&&FyCheckHotKeyStatus(FY_DOWN))&&!(FyCheckHotKeyStatus(FY_RIGHT)&&FyCheckHotKeyStatus(FY_LEFT))&&!(FyCheckHotKeyStatus(FY_DOWN)&&FyCheckHotKeyStatus(FY_LEFT)))
    {
+	   
+	   if(zoneFlag==2)
+		 {
+			zoneFlag=0;
+		 }
+	   
 	   if(lrF==0)
 	   {
 	     actor.TurnRight(10.0f);
@@ -299,13 +376,32 @@ void GameAI(int skip)
 	   }
    }
 
+  
+
    
    if ((faceF==0)&&FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
 	 if((turnF==0)&&(upingF==0)){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
 
-		  if(upF==1){
+		  if(zoneFlag==0){
+			zoneCounter++;
+			if(zoneCounter>=(int)(zone/10.0f))
+			{
+				zoneFlag=1;
+			}
+		  }
+
+	  }else
+	  {
+		  if(zoneCounter>=(int)(zone/10.0f))
+			zoneFlag=2;
+	  }
+
+
+	  if(zoneFlag==1)
+	  {
+		if(upF==1){
 				
 					if(radius<=490.0f){
 					radius+=10.0f;
@@ -314,11 +410,33 @@ void GameAI(int skip)
 					}
 					height=sqrt((constant)*(constant)-(radius)*(radius));
 
-					pushCemara();
+					pushCemaraUp();
 		  }else{
-					pushCemara();
+					pushCemaraUp();
 		  }
-      }
+	  }else if (zoneFlag==2)
+	  {
+		if(zoneCounter>0)
+		{
+			if(upF==1){
+				
+					if(radius<=490.0f){
+					radius+=10.0f;
+						if(radius==500.0f)
+							upF=0;
+					}
+					height=sqrt((constant)*(constant)-(radius)*(radius));
+
+					pushCemaraUp2();
+			}else{
+					pushCemaraUp2();
+			}
+			zoneCounter--;
+		}else{
+			zoneFlag=0;
+		}
+	 }
+		  
 	}
    }
 
@@ -354,6 +472,15 @@ void GameAI(int skip)
 
    if ((faceF==3)&&!FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
      if((turnF==0)&&(upingF==0)){
+
+		
+		  if(zoneFlag==2){
+			if(zoneCounter<(int)(zone/10.0f))
+			 {
+				zoneFlag=0;
+			 }
+		 }
+
 			float angle, leng;
 			leng = radius * 2.0f * 3.1415926f;
 			angle = 360.0f / (leng / 10.0f);
@@ -364,7 +491,7 @@ void GameAI(int skip)
 		
 		  actor.TurnRight(90.0f);
 		  
-		  pushCemara();
+		  pushCemaraLR();
 
 		  actor.TurnRight(-90.0f);
 
@@ -378,6 +505,14 @@ void GameAI(int skip)
   
    if ((faceF==2)&&!FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&FyCheckHotKeyStatus(FY_RIGHT)){
      if((turnF==0)&&(upingF==0)){
+
+		  if(zoneFlag==2){
+			if(zoneCounter<(int)(zone/10.0f))
+			 {
+				zoneFlag=0;
+			 }
+		 }
+
 			float angle, leng;
 			leng = radius * 2.0f * 3.1415926f;
 			angle = 360.0f / (leng / 10.0f);
@@ -388,7 +523,7 @@ void GameAI(int skip)
 		
 		  actor.TurnRight(-90.0f);
 		  
-		  pushCemara();
+		  pushCemaraLR();
 
 		  actor.TurnRight(90.0f);
 
@@ -408,6 +543,8 @@ void GameAI(int skip)
 
    if ((faceF==1)&&!FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
 	   if((turnF==0)&&(upingF==0)){
+
+
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 				if(upF==1){
@@ -448,18 +585,34 @@ void GameAI(int skip)
 						height=sqrt((constant)*(constant)-(radius)*(radius));
 					}
 					
-					pushCemara();
+					if(zoneCounter>0){
+						pushCemaraUp2();
+						zoneCounter--;
+					}else
+					{
+						pushCemara();
+					}
+
 					actor.TurnRight(-180.0f);
 
 				}else{
 
 					float tmpD[3],tmpP[3];
+					int localF;
 					cp.GetDirection(tmpD, NULL);
 					cp.GetPosition(tmpP, NULL);
 
 					actor.TurnRight(180.0f);
 		  
-					pushCemara();
+					if(zoneCounter>0){
+						localF=1;
+						pushCemaraUp2();
+						zoneCounter--;
+					}else
+					{
+						localF=0;
+						pushCemara();
+					}
 
 					if (testHit() <= 0) {
 
@@ -467,6 +620,9 @@ void GameAI(int skip)
 						cp.SetPosition(tmpP, NULL);
 						actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 						upF=1;
+						if(localF==1){
+							zoneCounter++;
+						}
 					}
 
 					actor.TurnRight(-180.0f);
@@ -525,12 +681,12 @@ void RenderIt(int skip)
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
    sprintf(uDirS, "up: %8.3f %8.3f %8.3f", uDir[0], uDir[1], uDir[2]);
-   //sprintf(rtest, "upingF %d",upingF);
+   sprintf(rtest, "zoneFlag %d zoneCounter %d" ,zoneFlag,zoneCounter);
 
    text.Write(posS, 20, 35, 255, 255, 0);
    text.Write(fDirS, 20, 50, 255, 255, 0);
    text.Write(uDirS, 20, 65, 255, 255, 0);
-   //text.Write(rtest, 20, 85, 255, 255, 0);
+   text.Write(rtest, 20, 85, 255, 255, 0);
 
    text.End();
 
@@ -563,9 +719,29 @@ void Movement(BYTE code, BOOL4 value)
       actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
    }
 
+ /* if (code == FY_UP){
+	   if (!value) 
+	   {
+			if(zoneCounter>=(int)(zone/10.0f))	
+				zoneFlag=2;
+	   }
+   }*/
+
    
    if (code == FY_UP){
       if (value) {
+
+		  zone=radius*percent;
+		  if(zoneCounter>=(int)(zone/10.0f))
+			{
+				zoneFlag=1;
+		  }else
+		  {
+			if(zoneFlag!=2){	
+			  zoneFlag=0;
+			}
+		  }
+
 		  if(turnF==0){
 			 if(faceF==1)
 			{
