@@ -453,7 +453,7 @@ void GameAI(int skip)
 			actor.TurnRight(-90.0f);
 		}
 
-		pushCemara();
+		pushCemaraLR();
 		 
 		if(upingDir==0)
 		{
