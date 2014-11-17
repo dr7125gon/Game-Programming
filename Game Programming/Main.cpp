@@ -36,7 +36,7 @@ float radius;
 float height;
 float constant=502.49f;
 float zone;
-float percent=0.5f;
+float percent=0.25f;
 int upingF=0;
 int upingDir=0;
 int zoneFlag = 0;
@@ -482,12 +482,15 @@ void GameAI(int skip)
 		 }
 
 			float angle, leng;
+			if(radius>30.0f){
 			leng = radius * 2.0f * 3.1415926f;
 			angle = 360.0f / (leng / 10.0f);
       
 			actor.TurnRight(-angle);
 			int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-		 
+			}else{
+			actor.TurnRight(-10.0f);
+			}
 		
 		  actor.TurnRight(90.0f);
 		  
@@ -514,11 +517,15 @@ void GameAI(int skip)
 		 }
 
 			float angle, leng;
+			if(radius>30.0f){
 			leng = radius * 2.0f * 3.1415926f;
 			angle = 360.0f / (leng / 10.0f);
       
 			actor.TurnRight(angle);
 			int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			}else{
+				actor.TurnRight(10.0f);
+			}
 		 
 		
 		  actor.TurnRight(-90.0f);
