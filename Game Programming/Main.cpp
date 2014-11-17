@@ -29,9 +29,14 @@ int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
 int turnF = 0;
 int count = 0;
-int faceF = 0;
+
 int lrF = 0;
 int upF = 0 ;
+int upArrow=0;
+int downArrow=0;
+int leftArrow=0;
+int rightArrow=0;
+int arrowFlag=0;
 float radius;
 float height;
 float constant=502.49f;
@@ -65,6 +70,342 @@ void ZoomCam(int, int);
   the main program
   C.Wang 1010, 2014
  -------------------*/
+
+void direction()
+{
+	if((upArrow)&&(!leftArrow)&&(!rightArrow)&&(!downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=0;
+				count=36;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(arrowFlag==3)
+			{
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=0;
+				count=27;
+			}
+			arrowFlag=0;
+		}
+	}else if((!upArrow)&&(!leftArrow)&&(!rightArrow)&&(downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=0;
+				count=36;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==3)
+			{
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=1;
+				count=9;
+			}
+			arrowFlag=1;
+		}
+	}else if((!upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))
+	{
+		
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(arrowFlag==3)
+			 {
+				turnF=1;
+				lrF=1;
+				count=36;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}
+			arrowFlag=2;
+		}
+	}else if((!upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=0;
+				count=36;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=1;
+				count=27;
+			}
+			arrowFlag=3;
+		}
+	}else if((upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==3)
+			 {
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=1;
+				count=36;
+			}
+			arrowFlag=4;
+		}
+	}else if((upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==3)
+			 {
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=1;
+				count=36;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=0;
+				count=18;
+			}
+			arrowFlag=5;
+		}
+	}else if((!upArrow)&&(!leftArrow)&&(rightArrow)&&(downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==3)
+			 {
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=0;
+				count=18;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=0;
+				count=36;
+			}else if(arrowFlag==7)
+			 {
+				turnF=1;
+				lrF=1;
+				count=18;
+			}
+			arrowFlag=6;
+		}
+	}else if((!upArrow)&&(leftArrow)&&(!rightArrow)&&(downArrow))
+	{
+		if(turnF==0){
+			 if(arrowFlag==0)
+			{
+				turnF=1;
+				lrF=1;
+				count=27;
+			}else if(arrowFlag==1)
+			{
+				turnF=1;
+				lrF=0;
+				count=9;
+			}else if(arrowFlag==2)
+			 {
+				turnF=1;
+				lrF=1;
+				count=9;
+			}else if(arrowFlag==3)
+			 {
+				turnF=1;
+				lrF=0;
+				count=27;
+			}else if(arrowFlag==4)
+			 {
+				turnF=1;
+				lrF=1;
+				count=36;
+			}else if(arrowFlag==5)
+			 {
+				turnF=1;
+				lrF=1;
+				count=18;
+			}else if(arrowFlag==6)
+			 {
+				turnF=1;
+				lrF=0;
+				count=18;
+			}
+			arrowFlag=7;
+		}
+	}
+}
+
+
 
 void pushCemara()
 {
@@ -329,7 +670,10 @@ void GameAI(int skip)
    float fDir[3], afDir[3], tempd[3];
    int walkFlag;
 
-   if((turnF==1&&count>0)&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_LEFT))&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_RIGHT))&&!(FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_DOWN))&&!(FyCheckHotKeyStatus(FY_RIGHT)&&FyCheckHotKeyStatus(FY_DOWN))&&!(FyCheckHotKeyStatus(FY_RIGHT)&&FyCheckHotKeyStatus(FY_LEFT))&&!(FyCheckHotKeyStatus(FY_DOWN)&&FyCheckHotKeyStatus(FY_LEFT)))
+   
+   direction();
+   
+   if((turnF==1)&&(count>0))
    {
 	   
 	   if(zoneFlag==2)
@@ -339,7 +683,7 @@ void GameAI(int skip)
 	   
 	   if(lrF==0)
 	   {
-	     actor.TurnRight(10.0f);
+	     actor.TurnRight(5.0f);
 		 count--;
 		 if(count==0)
 		 {
@@ -358,7 +702,7 @@ void GameAI(int skip)
 	   
 	   }else
 	   {
-		 actor.TurnRight(-10.0f);
+		 actor.TurnRight(-5.0f);
 		 count--;
 		 if(count==0)
 		 {
@@ -379,7 +723,7 @@ void GameAI(int skip)
   
 
    
-   if ((faceF==0)&&FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
+   if ((arrowFlag==0)&&((upArrow)&&(!leftArrow)&&(!rightArrow)&&(!downArrow))){
 	 if((turnF==0)&&(upingF==0)){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
@@ -448,9 +792,21 @@ void GameAI(int skip)
 		if(upingDir==0)
 		{
 			actor.TurnRight(90.0f);
-		}else
+		}else if(upingDir==1)
 		{
 			actor.TurnRight(-90.0f);
+		}else if(upingDir==2)
+		{
+			actor.TurnRight(-45.0f);
+		}else if(upingDir==3)
+		{
+			actor.TurnRight(45.0f);
+		}else if(upingDir==4)
+		{
+			actor.TurnRight(-135.0f);
+		}else if(upingDir==5)
+		{
+			actor.TurnRight(135.0f);
 		}
 
 		pushCemaraLR();
@@ -458,10 +814,23 @@ void GameAI(int skip)
 		if(upingDir==0)
 		{
 			actor.TurnRight(-90.0f);
-		}else
+		}else if(upingDir==1)
 		{
 			actor.TurnRight(90.0f);
+		}else if(upingDir==2)
+		{
+			actor.TurnRight(45.0f);
+		}else if(upingDir==3)
+		{
+			actor.TurnRight(-45.0f);
+		}else if(upingDir==4)
+		{
+			actor.TurnRight(135.0f);
+		}else if(upingDir==5)
+		{
+			actor.TurnRight(-135.0f);
 		}
+
 		if (testHit()>0) {
 			upingF=0;
 		}
@@ -470,7 +839,7 @@ void GameAI(int skip)
 
 
 
-   if ((faceF==3)&&!FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
+   if ((arrowFlag==2)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
      if((turnF==0)&&(upingF==0)){
 
 		
@@ -506,7 +875,7 @@ void GameAI(int skip)
      }
    }
   
-   if ((faceF==2)&&!FyCheckHotKeyStatus(FY_UP)&&!FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&FyCheckHotKeyStatus(FY_RIGHT)){
+   if ((arrowFlag==3)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
      if((turnF==0)&&(upingF==0)){
 
 		  if(zoneFlag==2){
@@ -542,13 +911,7 @@ void GameAI(int skip)
      }
    }
 
-
-
-
-
-
-
-   if ((faceF==1)&&!FyCheckHotKeyStatus(FY_UP)&&FyCheckHotKeyStatus(FY_DOWN)&&!FyCheckHotKeyStatus(FY_LEFT)&&!FyCheckHotKeyStatus(FY_RIGHT)){
+   if ((arrowFlag==1)&&((!upArrow)&&(!leftArrow)&&(!rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
 
 
@@ -637,6 +1000,74 @@ void GameAI(int skip)
 			}
 	   }
    }
+
+   if ((arrowFlag==4)&&((upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
+	   if((turnF==0)&&(upingF==0)){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			if (walkFlag == WALK){
+			
+				actor.TurnRight(-45.0f);
+				pushCemaraLR();
+				actor.TurnRight(45.0f);
+				if (testHit()<=0) {
+					upingF=1;
+					upingDir=2;
+				}
+			}
+	   }
+   }
+
+    if ((arrowFlag==5)&&((upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
+	   if((turnF==0)&&(upingF==0)){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			if (walkFlag == WALK){
+			
+				actor.TurnRight(45.0f);
+				pushCemaraLR();
+				actor.TurnRight(-45.0f);
+
+				if (testHit()<=0) {
+					upingF=1;
+					upingDir=3;
+				}
+			}
+	   }
+   }
+
+	 if ((arrowFlag==6)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(downArrow))){
+	   if((turnF==0)&&(upingF==0)){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			if (walkFlag == WALK){
+			
+				actor.TurnRight(-135.0f);
+				pushCemaraLR();
+				actor.TurnRight(135.0f);
+				if (testHit()<=0) {
+					upingF=1;
+					upingDir=4;
+				}
+			}
+	   }
+   }
+
+	  if ((arrowFlag==7)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(downArrow))){
+	   if((turnF==0)&&(upingF==0)){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			if (walkFlag == WALK){
+			
+				actor.TurnRight(135.0f);
+				pushCemaraLR();
+				actor.TurnRight(-135.0f);
+				if (testHit()<=0) {
+					upingF=1;
+					upingDir=5;
+				}
+			}
+	   }
+   }
+
+
+
 }
 
 
@@ -738,6 +1169,7 @@ void Movement(BYTE code, BOOL4 value)
    if (code == FY_UP){
       if (value) {
 
+		  upArrow=1;
 		  zone=radius*percent;
 		  if(zoneCounter>=(int)(zone/10.0f))
 			{
@@ -748,98 +1180,49 @@ void Movement(BYTE code, BOOL4 value)
 			  zoneFlag=0;
 			}
 		  }
+      }
+   }
 
-		  if(turnF==0){
-			 if(faceF==1)
-			{
-				turnF=1;
-				lrF=0;
-				count=18;
-			}else if(faceF==2)
-			{
-				turnF=1;
-				lrF=1;
-				count=9;
-			}else if(faceF==3)
-			 {
-				turnF=1;
-				lrF=0;
-				count=9;
-			}
-			faceF=0;
-		}
+   if (code == FY_UP){
+      if (!value) {
+		  upArrow=0;
+		 
       }
    }
 
    if (code == FY_DOWN){
       if (value) {
-		 if(turnF==0){
-			if(faceF==0)
-			{
-				turnF=1;
-				lrF=0;
-				count=18;
-			}else if(faceF==2)
-			{
-				turnF=1;
-				lrF=0;
-				count=9;
-			}else if(faceF==3)
-			{
-				turnF=1;
-				lrF=1;
-				count=9;
-			}
-			faceF=1;
-		 }
+		downArrow=1;
+      }
+   }
+
+   if (code == FY_DOWN){
+      if (!value) {
+		downArrow=0;
       }
    }
 
    if (code == FY_RIGHT){
       if (value) {
-		 if(turnF==0){
-			if(faceF==1)
-			{
-				turnF=1;
-				lrF=1;
-				count=9;
-			}else if(faceF==0)
-			 {
-				turnF=1;
-				lrF=0;
-				count=9;
-			}else if(faceF==3)
-			 {
-				turnF=1;
-				lrF=0;
-				count=18;
-			}
-			faceF=2;
-		 }
+		 rightArrow=1;
+      }
+   }
+
+    if (code == FY_RIGHT){
+      if (!value) {
+		 rightArrow=0;
       }
    }
 
    if (code == FY_LEFT){
       if (value) {
-		 if(turnF==0){
-			if(faceF==1)
-			{
-				turnF=1;
-				lrF=0;
-				count=9;
-			}else if(faceF==2)
-			{
-				turnF=1;
-				lrF=1;
-				count=18;
-			}else if(faceF==0)
-			{
-				turnF=1;
-				lrF=1;
-				count=9;
-			}
-			faceF=3;
-		 }
+		 leftArrow=1;
+      }
+   }
+
+   if (code == FY_LEFT){
+      if (!value) {
+		 leftArrow=0;
       }
    }
   
