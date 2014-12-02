@@ -1,4 +1,4 @@
-/*==============================================================
+	/*==============================================================
   character movement testing using Fly2
 
   - Load a scene
@@ -19,8 +19,8 @@
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
 OBJECTid cID, tID, cpID;              // the main camera and the terrain for terrain following
-CHARACTERid actorID;            // the major character
-ACTIONid idleID, runID, curPoseID; // two actions
+CHARACTERid actorID, enemyID;            // the major character
+ACTIONid idleID, runID, fightID, curPoseID, enemy_idleID, fightID2, fightID3; 
 ROOMid terrainRoomID = FAILED_ID;
 TEXTid textID = FAILED_ID;
 
@@ -46,7 +46,7 @@ int upingF=0;
 int upingDir=0;
 int zoneFlag = 0;
 int zoneCounter = 0;
-FnCharacter actor;
+FnCharacter actor, enemy;
 FnObject cp;
 FnObject terrain;
 
@@ -563,22 +563,44 @@ void FyMain(int argc, char **argv)
    FySetTexturePath("Data\\NTU5\\Characters");
    FySetCharacterPath("Data\\NTU5\\Characters");
    actorID = scene.LoadCharacter("Lyubu2");
+   enemyID = scene.LoadCharacter("Donzo2");
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
    
    actor.ID(actorID);
    pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
-   fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
+   fDir[0] = 0.8f; fDir[1] = -0.5f; fDir[2] = 0.0f;
    uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
    actor.SetDirection(fDir, uDir);
 
    actor.SetTerrainRoom(terrainRoomID, 10.0f);
    beOK = actor.PutOnTerrain(pos);
 
+   // put the character on terrain
+   float enemy_pos[3], enemy_fDir[3], enemy_uDir[3];
+
+   enemy.ID(enemyID);
+   enemy_pos[0] = 3350.0f; enemy_pos[1] = -2600.0f; enemy_pos[2] = 1000.0f;
+   enemy_fDir[0] = 1.0f; enemy_fDir[1] = 1.0f; enemy_fDir[2] = 0.0f;
+   enemy_uDir[0] = 0.0f; enemy_uDir[1] = 0.0f; enemy_uDir[2] = 1.0f;
+   enemy.SetDirection(enemy_fDir, enemy_uDir);
+
+   enemy.SetTerrainRoom(terrainRoomID, 10.0f);
+   beOK = enemy.PutOnTerrain(enemy_pos);
+
    // Get two character actions pre-defined at Lyubu2
    idleID = actor.GetBodyAction(NULL, "Idle");
    runID = actor.GetBodyAction(NULL, "Run");
+   fightID = actor.GetBodyAction(NULL, "NormalAttack1");
+   fightID2 = actor.GetBodyAction(NULL, "NormalAttack2");
+   fightID3 = actor.GetBodyAction(NULL, "UltimateAttack");
+
+   // Enemy
+   enemy_idleID = enemy.GetBodyAction(NULL, "Idle");
+   enemy.SetCurrentAction(NULL, 0, enemy_idleID);
+   enemy.Play(START, 0.0f, FALSE, TRUE);
+
 
    // set the character to idle action
    curPoseID = idleID;
@@ -638,6 +660,9 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_RIGHT, Movement, FALSE);   // Right for turning right
    FyDefineHotKey(FY_LEFT, Movement, FALSE);    // Left for turning left
    FyDefineHotKey(FY_DOWN, Movement, FALSE);
+   FyDefineHotKey(FY_Z, Movement, FALSE); //Attack
+   FyDefineHotKey(FY_X, Movement, FALSE); //Attack
+   FyDefineHotKey(FY_C, Movement, FALSE); //Attack
 
    // define some mouse functions
    FyBindMouseFunction(LEFT_MOUSE, InitPivot, PivotCam, NULL, NULL);
@@ -659,12 +684,17 @@ void FyMain(int argc, char **argv)
  --------------------------------------------------------------*/
 void GameAI(int skip)
 {
-   FnCharacter actor;
+   FnCharacter actor, enemy;
    FnObject cp;
 
    // play character pose
    actor.ID(actorID);
    actor.Play(LOOP, (float) skip, FALSE, TRUE);
+
+   // play enemy pose
+   enemy.ID(enemyID);
+   enemy.Play(LOOP, (float)skip, FALSE, TRUE);
+
 
    cp.ID(cpID);
    float fDir[3], afDir[3], tempd[3];
@@ -675,7 +705,6 @@ void GameAI(int skip)
    
    if((turnF==1)&&(count>0))
    {
-	   
 	   if(zoneFlag==2)
 		 {
 			zoneFlag=0;
@@ -1144,7 +1173,20 @@ void Movement(BYTE code, BOOL4 value)
   
 
    if (value) {
-      if (curPoseID != runID){
+	   if (code == FY_Z) {
+		   curPoseID = fightID;
+		   actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+	   }
+	   else if (code == FY_X) {
+		   curPoseID = fightID2;
+		   actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+	   }
+	   else if (code == FY_C) {
+		   curPoseID = fightID3;
+		   actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+	   }
+
+	   else if (curPoseID != runID){
          curPoseID = runID;
          actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
       }
@@ -1152,18 +1194,13 @@ void Movement(BYTE code, BOOL4 value)
    else if (!FyCheckHotKeyStatus(FY_UP) &&
           !FyCheckHotKeyStatus(FY_LEFT) &&
           !FyCheckHotKeyStatus(FY_RIGHT) &&
-          !FyCheckHotKeyStatus(FY_DOWN)&&!turnF ) {
+          !FyCheckHotKeyStatus(FY_DOWN)&&
+		  !FyCheckHotKeyStatus(FY_Z)&&
+		  !FyCheckHotKeyStatus(FY_X)&&
+		  !FyCheckHotKeyStatus(FY_C)&&!turnF) {
       curPoseID = idleID;
       actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
    }
-
- /* if (code == FY_UP){
-	   if (!value) 
-	   {
-			if(zoneCounter>=(int)(zone/10.0f))	
-				zoneFlag=2;
-	   }
-   }*/
 
    
    if (code == FY_UP){
