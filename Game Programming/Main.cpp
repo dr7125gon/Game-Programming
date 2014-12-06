@@ -1,4 +1,4 @@
-	/*==============================================================
+/*==============================================================
   character movement testing using Fly2
 
   - Load a scene
@@ -65,11 +65,46 @@ void InitMove(int, int);
 void MoveCam(int, int);
 void InitZoom(int, int);
 void ZoomCam(int, int);
+float GetDistance(int, int);
+bool peopleCollide(int, int);
 
 /*------------------
-  the main program
-  C.Wang 1010, 2014
- -------------------*/
+ Get the distance between the 2 characters.
+@param: int a1, actor1's ID
+@param: int a2, actor2's ID
+@return: float, the distance
+-------------------*/
+float GetDistance(int a1, int a2) {
+	FnCharacter actor;
+	actor.ID(a1);
+	FnCharacter enemy;
+	enemy.ID(a2);
+	float actor_pos[3], enemy_pos[3], distance;
+
+	actor.GetPosition(actor_pos);
+	enemy.GetPosition(enemy_pos);
+
+	//calculate the distance
+	distance = sqrt(pow(actor_pos[0] - enemy_pos[0], 2) + pow(actor_pos[1] - enemy_pos[1], 2) +
+		pow(actor_pos[2] - enemy_pos[2], 2));
+
+	return distance;
+
+}
+
+/*------------------
+Check if 2 people collide.
+@param: int a1, actor1's ID
+@param: int a2, actor2's ID
+@return: bool, true for collide.
+-------------------*/
+bool peopleCollide(int a1, int a2) {
+	float distance;
+	distance = GetDistance(a1, a2);
+	if (distance < 100.0f)
+		return TRUE;
+}
+
 
 void direction()
 {
@@ -405,7 +440,10 @@ void direction()
 	}
 }
 
-
+/*------------------
+the main program
+C.Wang 1010, 2014
+-------------------*/
 
 void pushCemara()
 {
@@ -581,7 +619,7 @@ void FyMain(int argc, char **argv)
    float enemy_pos[3], enemy_fDir[3], enemy_uDir[3];
 
    enemy.ID(enemyID);
-   enemy_pos[0] = 3350.0f; enemy_pos[1] = -2600.0f; enemy_pos[2] = 1000.0f;
+   enemy_pos[0] = 3400.0f; enemy_pos[1] = -3000.0f; enemy_pos[2] = 900.0f;
    enemy_fDir[0] = 1.0f; enemy_fDir[1] = 1.0f; enemy_fDir[2] = 0.0f;
    enemy_uDir[0] = 0.0f; enemy_uDir[1] = 0.0f; enemy_uDir[2] = 1.0f;
    enemy.SetDirection(enemy_fDir, enemy_uDir);
@@ -753,8 +791,10 @@ void GameAI(int skip)
 
    
    if ((arrowFlag==0)&&((upArrow)&&(!leftArrow)&&(!rightArrow)&&(!downArrow))){
-	 if((turnF==0)&&(upingF==0)){
-      walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+	 if((turnF==0)&&(upingF==0)&&(!peopleCollide(actorID, enemyID))){
+      walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, TRUE);
+	  if (peopleCollide(actorID, enemyID)) 
+		  actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
       if (walkFlag == WALK){
 
 		  if(zoneFlag==0){
@@ -880,14 +920,17 @@ void GameAI(int skip)
 		 }
 
 			float angle, leng;
-			if(radius>30.0f){
-			leng = radius * 2.0f * 3.1415926f;
-			angle = 360.0f / (leng / 10.0f);
+			if ((radius>30.0f) && (!peopleCollide(actorID, enemyID))){
+				leng = radius * 2.0f * 3.1415926f;
+				angle = 360.0f / (leng / 10.0f);
       
-			actor.TurnRight(-angle);
-			int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
-			}else{
-			actor.TurnRight(-10.0f);
+				actor.TurnRight(-angle);
+				int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, TRUE);
+				if (peopleCollide(actorID, enemyID))
+					actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
+			}
+			else {
+				actor.TurnRight(-10.0f);
 			}
 		
 		  actor.TurnRight(90.0f);
@@ -915,12 +958,14 @@ void GameAI(int skip)
 		 }
 
 			float angle, leng;
-			if(radius>30.0f){
-			leng = radius * 2.0f * 3.1415926f;
-			angle = 360.0f / (leng / 10.0f);
+			if ((radius>30.0f) && (!peopleCollide(actorID, enemyID))){
+				leng = radius * 2.0f * 3.1415926f;
+				angle = 360.0f / (leng / 10.0f);
       
-			actor.TurnRight(angle);
-			int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+				actor.TurnRight(angle);
+				int flg = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+				if (peopleCollide(actorID, enemyID))
+					actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 			}else{
 				actor.TurnRight(10.0f);
 			}
@@ -941,10 +986,13 @@ void GameAI(int skip)
    }
 
    if ((arrowFlag==1)&&((!upArrow)&&(!leftArrow)&&(!rightArrow)&&(downArrow))){
-	   if((turnF==0)&&(upingF==0)){
+	   if ((turnF == 0) && (upingF == 0) && (!peopleCollide(actorID, enemyID))){
 
 
-			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+		    
+		    walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+			if (peopleCollide(actorID, enemyID))
+				actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 			if (walkFlag == WALK){
 				if(upF==1){
 				
@@ -1013,11 +1061,13 @@ void GameAI(int skip)
 						pushCemara();
 					}
 
-					if (testHit() <= 0) {
+					if ((testHit() <= 0) && (!peopleCollide(actorID, enemyID))){
 
 						cp.SetDirection(tmpD, NULL);
 						cp.SetPosition(tmpP, NULL);
 						actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+						if (peopleCollide(actorID, enemyID))
+							actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 						upF=1;
 						if(localF==1){
 							zoneCounter++;
@@ -1031,8 +1081,10 @@ void GameAI(int skip)
    }
 
    if ((arrowFlag==4)&&((upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
-	   if((turnF==0)&&(upingF==0)){
-			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+	   if ((turnF == 0) && (upingF == 0) && (!peopleCollide(actorID, enemyID))){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, TRUE);
+			if (peopleCollide(actorID, enemyID))
+				actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 			if (walkFlag == WALK){
 			
 				actor.TurnRight(-45.0f);
@@ -1046,9 +1098,12 @@ void GameAI(int skip)
 	   }
    }
 
+    //左+上
     if ((arrowFlag==5)&&((upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
-	   if((turnF==0)&&(upingF==0)){
-			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+		if ((turnF == 0) && (upingF == 0) && (!peopleCollide(actorID, enemyID))){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, TRUE);
+			if (peopleCollide(actorID, enemyID))
+					actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 			if (walkFlag == WALK){
 			
 				actor.TurnRight(45.0f);
@@ -1064,8 +1119,10 @@ void GameAI(int skip)
    }
 
 	 if ((arrowFlag==6)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(downArrow))){
-	   if((turnF==0)&&(upingF==0)){
-			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+		 if ((turnF == 0) && (upingF == 0) && (!peopleCollide(actorID, enemyID))){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, TRUE);
+			if (peopleCollide(actorID, enemyID))
+				actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 			if (walkFlag == WALK){
 			
 				actor.TurnRight(-135.0f);
@@ -1080,8 +1137,10 @@ void GameAI(int skip)
    }
 
 	  if ((arrowFlag==7)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(downArrow))){
-	   if((turnF==0)&&(upingF==0)){
-			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+		  if ((turnF == 0) && (upingF == 0) && (!peopleCollide(actorID, enemyID))){
+			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, TRUE);
+			if (peopleCollide(actorID, enemyID))
+				actor.MoveForward(-10.0f, TRUE, FALSE, FALSE, TRUE);
 			if (walkFlag == WALK){
 			
 				actor.TurnRight(135.0f);
