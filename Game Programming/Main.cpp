@@ -14,13 +14,14 @@
  ===============================================================*/
 #include "FlyWin32.h"
 #include <math.h>
+#define PI 3.14159265
 
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
 OBJECTid cID, tID, cpID;              // the main camera and the terrain for terrain following
-CHARACTERid actorID;            // the major character
-ACTIONid idleID, runID, curPoseID; // two actions
+CHARACTERid actorID,actorID2;            // the major character
+ACTIONid idleID, runID,attackID1,attackID2,attackID3,curPoseID,idleID2,curPoseID2,dieID2,hurtID2; // two actions
 ROOMid terrainRoomID = FAILED_ID;
 TEXTid textID = FAILED_ID;
 
@@ -37,6 +38,17 @@ int downArrow=0;
 int leftArrow=0;
 int rightArrow=0;
 int arrowFlag=0;
+int AttackCounter=0;
+int Attack1Flag=0;
+int Attack2Flag=0;
+int Attack3Flag=0;
+int AttackHitF = 0;
+int DonzoDeadF = 0;
+int HitCounter=0;
+int DonzoLife=5;
+
+float angleAB=0.0f;
+
 float radius;
 float height;
 float constant=502.49f;
@@ -46,7 +58,7 @@ int upingF=0;
 int upingDir=0;
 int zoneFlag = 0;
 int zoneCounter = 0;
-FnCharacter actor;
+FnCharacter actor,actor2;
 FnObject cp;
 FnObject terrain;
 
@@ -70,6 +82,70 @@ void ZoomCam(int, int);
   the main program
   C.Wang 1010, 2014
  -------------------*/
+
+
+void AttackHit(int attack)
+{
+	float actor1Fdir[3],actor1Pos[3];
+	float resultFdir[3],actor2Pos[3];
+	float cross,lengthA,lengthB;
+	float rangeLength,rangeAngle;
+
+	actor.GetPosition(actor1Pos);
+	actor2.GetPosition(actor2Pos);
+	resultFdir[0]=actor2Pos[0]-actor1Pos[0];
+	resultFdir[1]=actor2Pos[1]-actor1Pos[1];
+	resultFdir[2]=actor2Pos[2]-actor1Pos[2];
+
+	actor.GetDirection(actor1Fdir,NULL);
+
+	cross=resultFdir[0]*actor1Fdir[0]+resultFdir[1]*actor1Fdir[1]+resultFdir[2]*actor1Fdir[2];
+	lengthA=sqrt(pow(resultFdir[0],2)+pow(resultFdir[1],2)+pow(resultFdir[2],2));
+	lengthB=sqrt(pow(actor1Fdir[0],2)+pow(actor1Fdir[1],2)+pow(actor1Fdir[2],2));
+		
+	
+	angleAB=acos(cross/lengthA/lengthB)*180.0/PI;
+
+	resultFdir[0]=-resultFdir[0];
+	resultFdir[1]=-resultFdir[1];
+	resultFdir[2]=-resultFdir[2];
+
+	if(attack==1){
+		rangeLength=240.0f;
+		rangeAngle=30.0f;
+	}else if(attack==2){
+		rangeLength=240.0f;
+		rangeAngle=60.0f;
+	}else if(attack==3){
+		rangeLength=240.0f;
+		rangeAngle=180.0f;
+	}
+
+	if((angleAB<rangeAngle)&&(lengthA<rangeLength)){
+		if(attack==1){
+			DonzoLife--;
+		}else if(attack==2){
+			DonzoLife=DonzoLife-2;
+		}else if(attack==3){
+			DonzoLife=DonzoLife-5;
+		}
+		
+		if(DonzoLife>0){
+			actor2.SetDirection(resultFdir,NULL);
+			AttackHitF=1;
+			curPoseID2 = hurtID2;
+			actor2.SetCurrentAction(NULL, 0, curPoseID2, 5.0f);
+			HitCounter=35;
+		}else if((DonzoLife<=0)&&(DonzoDeadF!=1)){
+			actor2.SetDirection(resultFdir,NULL);
+			DonzoDeadF=1;
+			curPoseID2 = dieID2;
+			actor2.SetCurrentAction(NULL, 0, curPoseID2, 5.0f);
+		}
+	}else{
+		AttackHitF=0;
+	}
+}
 
 void direction()
 {
@@ -563,9 +639,11 @@ void FyMain(int argc, char **argv)
    FySetTexturePath("Data\\NTU5\\Characters");
    FySetCharacterPath("Data\\NTU5\\Characters");
    actorID = scene.LoadCharacter("Lyubu2");
+   actorID2 = scene.LoadCharacter("Donzo2");
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
+   float pos2[3], fDir2[3], uDir2[3];
    
    actor.ID(actorID);
    pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
@@ -573,18 +651,40 @@ void FyMain(int argc, char **argv)
    uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
    actor.SetDirection(fDir, uDir);
 
+   actor2.ID(actorID2);
+   pos2[0] = 3669.0f; pos2[1] = -3208.0f; pos2[2] = 1000.0f;
+   fDir2[0] = -1.0f; fDir2[1] = -1.0f; fDir2[2] = -0.0f;
+   uDir2[0] = 0.0f; uDir2[1] = 0.0f; uDir2[2] = 1.0f;
+   actor2.SetDirection(fDir2, uDir2);
+
    actor.SetTerrainRoom(terrainRoomID, 10.0f);
    beOK = actor.PutOnTerrain(pos);
+
+   actor2.SetTerrainRoom(terrainRoomID, 10.0f);
+   beOK = actor2.PutOnTerrain(pos2);
 
    // Get two character actions pre-defined at Lyubu2
    idleID = actor.GetBodyAction(NULL, "Idle");
    runID = actor.GetBodyAction(NULL, "Run");
+   attackID1 = actor.GetBodyAction(NULL, "NormalAttack1");
+   attackID2 = actor.GetBodyAction(NULL, "NormalAttack3");
+   attackID3 = actor.GetBodyAction(NULL, "NormalAttack2");
+
+   idleID2 = actor2.GetBodyAction(NULL, "Idle");
+   hurtID2 = actor2.GetBodyAction(NULL, "DamageH");
+   dieID2 = actor2.GetBodyAction(NULL, "Die");
+   
 
    // set the character to idle action
    curPoseID = idleID;
    actor.SetCurrentAction(NULL, 0, curPoseID);
    actor.Play(START, 0.0f, FALSE, TRUE);
    actor.TurnRight(90.0f);
+
+   curPoseID2 = idleID2;
+   actor2.SetCurrentAction(NULL, 0, curPoseID2);
+   actor2.Play(START, 0.0f, FALSE, TRUE);
+   actor2.TurnRight(90.0f);
 
    // translate the camera
    cID = scene.CreateObject(CAMERA);
@@ -638,6 +738,9 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_RIGHT, Movement, FALSE);   // Right for turning right
    FyDefineHotKey(FY_LEFT, Movement, FALSE);    // Left for turning left
    FyDefineHotKey(FY_DOWN, Movement, FALSE);
+   FyDefineHotKey(FY_Z, Movement, FALSE);
+   FyDefineHotKey(FY_X, Movement, FALSE);
+   FyDefineHotKey(FY_C, Movement, FALSE);
 
    // define some mouse functions
    FyBindMouseFunction(LEFT_MOUSE, InitPivot, PivotCam, NULL, NULL);
@@ -659,12 +762,64 @@ void FyMain(int argc, char **argv)
  --------------------------------------------------------------*/
 void GameAI(int skip)
 {
-   FnCharacter actor;
+   FnCharacter actor,actor2;
    FnObject cp;
 
    // play character pose
    actor.ID(actorID);
-   actor.Play(LOOP, (float) skip, FALSE, TRUE);
+   if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)){
+		actor.Play(LOOP, (float) skip, FALSE, TRUE);
+   }else if(Attack1Flag==1){
+		actor.Play(ONCE, (float) skip, FALSE, TRUE);
+		AttackCounter--;
+		if(AttackCounter==0){
+			curPoseID = idleID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+			Attack1Flag=0;
+		}
+   }else if(Attack2Flag==1){
+		actor.Play(ONCE, (float) skip, FALSE, TRUE);
+		AttackCounter--;
+
+		if(AttackCounter==20){
+			AttackHit(2);
+		}
+
+		if(AttackCounter==0){
+			curPoseID = idleID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+			Attack2Flag=0;
+		}
+   }else if(Attack3Flag==1){
+		actor.Play(ONCE, (float) skip, FALSE, TRUE);
+		AttackCounter--;
+
+		if(AttackCounter==40){
+			AttackHit(3);
+		}
+
+		if(AttackCounter==0){
+			curPoseID = idleID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+			Attack3Flag=0;
+		}
+   }
+	
+   actor2.ID(actorID2);
+   if((AttackHitF!=1)&&(DonzoDeadF!=1)){
+		actor2.Play(LOOP, (float) skip, FALSE, TRUE);
+   }else if(AttackHitF==1){
+		actor2.Play(ONCE, (float) skip, FALSE, TRUE);
+		HitCounter--;
+		if(HitCounter==0){
+			curPoseID2 = idleID2;
+			actor2.SetCurrentAction(NULL, 0, curPoseID2, 0.0f);
+			AttackHitF=0;
+		}
+   }else if(DonzoDeadF==1){
+	   actor2.Play(ONCE, (float) skip, FALSE, TRUE);
+   }
+
 
    cp.ID(cpID);
    float fDir[3], afDir[3], tempd[3];
@@ -1115,16 +1270,18 @@ void RenderIt(int skip)
    text.Begin(vID);
    text.Write(string, 20, 20, 255, 0, 0);
 
-   char posS[256], fDirS[256], uDirS[256],rtest[256];
+   char posS[256], fDirS[256], uDirS[256],rtest[256],angletest[256];
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
    sprintf(uDirS, "up: %8.3f %8.3f %8.3f", uDir[0], uDir[1], uDir[2]);
    sprintf(rtest, "zoneFlag %d zoneCounter %d" ,zoneFlag,zoneCounter);
+   sprintf(angletest, "angleAB %8.3f" ,angleAB);
 
    text.Write(posS, 20, 35, 255, 255, 0);
    text.Write(fDirS, 20, 50, 255, 255, 0);
    text.Write(uDirS, 20, 65, 255, 255, 0);
-   text.Write(rtest, 20, 85, 255, 255, 0);
+   text.Write(rtest, 20, 80, 255, 255, 0);
+   text.Write(angletest, 20, 95, 255, 255, 0);
 
    text.End();
 
@@ -1142,21 +1299,6 @@ void Movement(BYTE code, BOOL4 value)
    FnCharacter actor;
    actor.ID(actorID);
   
-
-   if (value) {
-      if (curPoseID != runID){
-         curPoseID = runID;
-         actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
-      }
-   }
-   else if (!FyCheckHotKeyStatus(FY_UP) &&
-          !FyCheckHotKeyStatus(FY_LEFT) &&
-          !FyCheckHotKeyStatus(FY_RIGHT) &&
-          !FyCheckHotKeyStatus(FY_DOWN)&&!turnF ) {
-      curPoseID = idleID;
-      actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
-   }
-
  /* if (code == FY_UP){
 	   if (!value) 
 	   {
@@ -1164,15 +1306,49 @@ void Movement(BYTE code, BOOL4 value)
 				zoneFlag=2;
 	   }
    }*/
+   if (code == FY_Z){
+	   if (value) {
+		   if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)&&(upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)){
+				Attack1Flag=1;
+				AttackHit(1);
+				curPoseID = attackID1;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+				AttackCounter=25;
+		   }
+	   }
+   }
 
+   if (code == FY_X){
+	   if (value) {
+		   if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)&&(upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)){
+				Attack2Flag=1;
+				curPoseID = attackID2;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+				AttackCounter=45;
+		   }
+	   }
+   }
+
+   if (code == FY_C){
+	   if (value) {
+		   if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)&&(upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)){
+				Attack3Flag=1;
+				curPoseID = attackID3;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+				AttackCounter=45;
+		   }
+	   }
+   }
+   
    
    if (code == FY_UP){
+	  if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)){
       if (value) {
 
 		  upArrow=1;
 		  zone=radius*percent;
 		  if(zoneCounter>=(int)(zone/10.0f))
-			{
+		  {
 				zoneFlag=1;
 		  }else
 		  {
@@ -1180,51 +1356,77 @@ void Movement(BYTE code, BOOL4 value)
 			  zoneFlag=0;
 			}
 		  }
-      }
-   }
 
-   if (code == FY_UP){
-      if (!value) {
+		  if (curPoseID != runID){
+			curPoseID = runID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+	  }else{
 		  upArrow=0;
-		 
-      }
+		  if ((upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)) {
+				curPoseID = idleID;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+	  }
+	  }
    }
 
    if (code == FY_DOWN){
+	  if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)){
       if (value) {
 		downArrow=1;
-      }
-   }
-
-   if (code == FY_DOWN){
-      if (!value) {
-		downArrow=0;
-      }
+		 if (curPoseID != runID){
+			curPoseID = runID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+	  }else{
+		  downArrow=0;
+		  if ((upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)) {
+				curPoseID = idleID;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+	  }
+	  }
    }
 
    if (code == FY_RIGHT){
+	  if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)){
       if (value) {
 		 rightArrow=1;
-      }
-   }
+		 if (curPoseID != runID){
+			curPoseID = runID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+	  }else{
+		  rightArrow=0;
+		  if ((upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)) {
+				curPoseID = idleID;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
 
-    if (code == FY_RIGHT){
-      if (!value) {
-		 rightArrow=0;
-      }
+	  }
+	  }
    }
 
    if (code == FY_LEFT){
+	  if((Attack1Flag!=1)&&(Attack2Flag!=1)&&(Attack3Flag!=1)){
       if (value) {
 		 leftArrow=1;
-      }
+		 if (curPoseID != runID){
+			curPoseID = runID;
+			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+	  }else{
+		 leftArrow=0;
+		 if ((upArrow!=1)&&(downArrow!=1)&&(leftArrow!=1)&&(rightArrow!=1)&&(turnF!=1)) {
+				curPoseID = idleID;
+				actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		  }
+
+	  }
+	  }
    }
 
-   if (code == FY_LEFT){
-      if (!value) {
-		 leftArrow=0;
-      }
-   }
   
 }
 
