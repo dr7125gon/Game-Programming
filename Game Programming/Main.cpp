@@ -83,32 +83,112 @@ void ZoomCam(int, int);
   C.Wang 1010, 2014
  -------------------*/
 
+float GetDistance(int a1, int a2) {
+	FnCharacter actorLocal;
+	actorLocal.ID(a1);
+	FnCharacter enemy;
+	enemy.ID(a2);
+	float actor_pos[3], enemy_pos[3], distance;
 
-void AttackHit(int attack)
-{
+	actorLocal.GetPosition(actor_pos);
+	enemy.GetPosition(enemy_pos);
+
+	//calculate the distance
+	distance = sqrt(pow(actor_pos[0] - enemy_pos[0], 2) + pow(actor_pos[1] - enemy_pos[1], 2) +
+		pow(actor_pos[2] - enemy_pos[2], 2));
+
+	return distance;
+
+}
+
+void getResultFdir(int a1, int a2, float *ary) {
+	FnCharacter actorLocal;
+	actorLocal.ID(a1);
+	FnCharacter enemy;
+	enemy.ID(a2);
+	float resultFdir[3],actor2Pos[3],actor1Pos[3];
+	actorLocal.GetPosition(actor1Pos);
+	enemy.GetPosition(actor2Pos);
+	resultFdir[0]=actor2Pos[0]-actor1Pos[0];
+	resultFdir[1]=actor2Pos[1]-actor1Pos[1];
+	resultFdir[2]=actor2Pos[2]-actor1Pos[2];
+	
+	ary[0]=-(resultFdir[0]);
+	ary[1]=-(resultFdir[1]);
+	ary[2]=-(resultFdir[2]);
+}
+
+
+float GetAngle(int a1, int a2) {
+	FnCharacter actorLocal;
+	actorLocal.ID(a1);
+	FnCharacter enemy;
+	enemy.ID(a2);
+	float angle;
 	float actor1Fdir[3],actor1Pos[3];
 	float resultFdir[3],actor2Pos[3];
 	float cross,lengthA,lengthB;
 	float rangeLength,rangeAngle;
 
-	actor.GetPosition(actor1Pos);
-	actor2.GetPosition(actor2Pos);
+	actorLocal.GetPosition(actor1Pos);
+	enemy.GetPosition(actor2Pos);
 	resultFdir[0]=actor2Pos[0]-actor1Pos[0];
 	resultFdir[1]=actor2Pos[1]-actor1Pos[1];
 	resultFdir[2]=actor2Pos[2]-actor1Pos[2];
 
-	actor.GetDirection(actor1Fdir,NULL);
+	actorLocal.GetDirection(actor1Fdir,NULL);
 
 	cross=resultFdir[0]*actor1Fdir[0]+resultFdir[1]*actor1Fdir[1]+resultFdir[2]*actor1Fdir[2];
 	lengthA=sqrt(pow(resultFdir[0],2)+pow(resultFdir[1],2)+pow(resultFdir[2],2));
 	lengthB=sqrt(pow(actor1Fdir[0],2)+pow(actor1Fdir[1],2)+pow(actor1Fdir[2],2));
 		
 	
-	angleAB=acos(cross/lengthA/lengthB)*180.0/PI;
+	angle=acos(cross/lengthA/lengthB)*180.0/PI;
 
-	resultFdir[0]=-resultFdir[0];
-	resultFdir[1]=-resultFdir[1];
-	resultFdir[2]=-resultFdir[2];
+	return angle;
+
+}
+
+bool peopleCollide(int a1, int a2) {
+   float distance;
+   float angle;
+	distance = GetDistance(a1, a2);
+	angle=GetAngle(a1, a2);
+	angleAB=angle;
+	if ((distance < 50.0f)&&(angle<45.0f))
+		return true;
+	else
+		return false;
+}
+
+bool testIFforward(int a1, int a2){
+	FnCharacter actorLocal;
+	bool FlagLocal;
+	int walkFlag;
+
+	actorLocal.ID(a1);
+	walkFlag=actorLocal.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+
+	if(walkFlag==WALK){
+		FlagLocal=peopleCollide(a1,a2);
+		actorLocal.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
+		return !FlagLocal;
+	}
+	else{
+		return true;
+	}
+}
+
+void AttackHit(int attack)
+{
+	float lengthLocal,angleLocal,rangeLength,rangeAngle,resultFdir[3];
+	
+	angleLocal=GetAngle(actorID,actorID2);
+	lengthLocal=GetDistance(actorID,actorID2);
+
+	//angleAB=angleLocal;
+	
+	getResultFdir(actorID,actorID2,resultFdir);
 
 	if(attack==1){
 		rangeLength=240.0f;
@@ -121,29 +201,30 @@ void AttackHit(int attack)
 		rangeAngle=180.0f;
 	}
 
-	if((angleAB<rangeAngle)&&(lengthA<rangeLength)){
-		if(attack==1){
-			DonzoLife--;
-		}else if(attack==2){
-			DonzoLife=DonzoLife-2;
-		}else if(attack==3){
-			DonzoLife=DonzoLife-5;
+	if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
+
+		actor2.SetDirection(resultFdir,NULL);
+
+		if(DonzoLife>0){
+			if(attack==1){
+				DonzoLife--;
+			}else if(attack==2){
+				DonzoLife=DonzoLife-2;
+			}else if(attack==3){
+				DonzoLife=DonzoLife-5;
+			}
 		}
 		
 		if(DonzoLife>0){
-			actor2.SetDirection(resultFdir,NULL);
 			AttackHitF=1;
 			curPoseID2 = hurtID2;
 			actor2.SetCurrentAction(NULL, 0, curPoseID2, 5.0f);
 			HitCounter=35;
 		}else if((DonzoLife<=0)&&(DonzoDeadF!=1)){
-			actor2.SetDirection(resultFdir,NULL);
 			DonzoDeadF=1;
 			curPoseID2 = dieID2;
 			actor2.SetCurrentAction(NULL, 0, curPoseID2, 5.0f);
 		}
-	}else{
-		AttackHitF=0;
 	}
 }
 
@@ -880,6 +961,10 @@ void GameAI(int skip)
    
    if ((arrowFlag==0)&&((upArrow)&&(!leftArrow)&&(!rightArrow)&&(!downArrow))){
 	 if((turnF==0)&&(upingF==0)){
+		 bool continueFlag=testIFforward(actorID,actorID2);
+
+
+	 if(continueFlag){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
       if (walkFlag == WALK){
 
@@ -935,7 +1020,7 @@ void GameAI(int skip)
 			zoneFlag=0;
 		}
 	 }
-		  
+	 }  
 	}
    }
 
@@ -996,8 +1081,9 @@ void GameAI(int skip)
 
    if ((arrowFlag==2)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
      if((turnF==0)&&(upingF==0)){
-
+		 bool continueFlag=testIFforward(actorID,actorID2);
 		
+		 if(continueFlag){
 		  if(zoneFlag==2){
 			if(zoneCounter<(int)(zone/10.0f))
 			 {
@@ -1026,13 +1112,15 @@ void GameAI(int skip)
 			upingF=1;
 			upingDir=0;
 		}
-	   
+	   }
      }
    }
   
    if ((arrowFlag==3)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
      if((turnF==0)&&(upingF==0)){
+		 bool continueFlag=testIFforward(actorID,actorID2);
 
+		 if(continueFlag){
 		  if(zoneFlag==2){
 			if(zoneCounter<(int)(zone/10.0f))
 			 {
@@ -1062,14 +1150,15 @@ void GameAI(int skip)
 			upingF=1;
 			upingDir=1;
 		}
-	   
+	   }
      }
    }
 
    if ((arrowFlag==1)&&((!upArrow)&&(!leftArrow)&&(!rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
-
-
+		   bool continueFlag=testIFforward(actorID,actorID2);
+		  
+		   if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 				if(upF==1){
@@ -1153,11 +1242,14 @@ void GameAI(int skip)
 					actor.TurnRight(-180.0f);
 				}
 			}
+	      }
 	   }
    }
 
    if ((arrowFlag==4)&&((upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
 	   if((turnF==0)&&(upingF==0)){
+		  bool continueFlag=testIFforward(actorID,actorID2);
+		  if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 			
@@ -1169,11 +1261,14 @@ void GameAI(int skip)
 					upingDir=2;
 				}
 			}
+	      }
 	   }
    }
 
     if ((arrowFlag==5)&&((upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
 	   if((turnF==0)&&(upingF==0)){
+		  bool continueFlag=testIFforward(actorID,actorID2); 
+		  if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 			
@@ -1186,11 +1281,14 @@ void GameAI(int skip)
 					upingDir=3;
 				}
 			}
+	      }
 	   }
    }
 
 	 if ((arrowFlag==6)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
+		 bool continueFlag=testIFforward(actorID,actorID2);
+		 if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 			
@@ -1202,11 +1300,14 @@ void GameAI(int skip)
 					upingDir=4;
 				}
 			}
+	      }
 	   }
    }
 
 	  if ((arrowFlag==7)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
+		  bool continueFlag=testIFforward(actorID,actorID2);  
+		  if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
 			
@@ -1218,6 +1319,7 @@ void GameAI(int skip)
 					upingDir=5;
 				}
 			}
+	      }
 	   }
    }
 
