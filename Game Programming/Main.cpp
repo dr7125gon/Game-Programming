@@ -29,6 +29,7 @@ int frame = 0;
 int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
 int turnF = 0;
 int count = 0;
+float turnSpeed = 15.0f; //turning spped, need to be the common factor of 45, 90, 135, 180
 
 int lrF = 0;
 int upF = 0;
@@ -118,43 +119,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			arrowFlag = 0;
 		}
@@ -166,43 +167,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			arrowFlag = 1;
 		}
@@ -215,43 +216,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 1)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			arrowFlag = 2;
 		}
@@ -263,43 +264,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 1)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			arrowFlag = 3;
 		}
@@ -311,43 +312,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 1)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			arrowFlag = 4;
 		}
@@ -359,43 +360,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 1)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			arrowFlag = 5;
 		}
@@ -407,43 +408,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 1)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 7)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			arrowFlag = 6;
 		}
@@ -455,43 +456,43 @@ void direction()
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 1)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 2)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 9;
+				count = 45/turnSpeed;
 			}
 			else if (arrowFlag == 3)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 27;
+				count = 135/turnSpeed;
 			}
 			else if (arrowFlag == 4)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 36;
+				count = 180/turnSpeed;
 			}
 			else if (arrowFlag == 5)
 			{
 				turnF = 1;
 				lrF = 1;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			else if (arrowFlag == 6)
 			{
 				turnF = 1;
 				lrF = 0;
-				count = 18;
+				count = 90/turnSpeed;
 			}
 			arrowFlag = 7;
 		}
@@ -708,7 +709,7 @@ void FyMain(int argc, char **argv)
    curPoseID = idleID;
    actor.SetCurrentAction(NULL, 0, curPoseID);
    actor.Play(START, 0.0f, FALSE, TRUE);
-   actor.TurnRight(90.0f);
+   actor.TurnRight(180.0f);
 
    // translate the camera
    cID = scene.CreateObject(CAMERA);
@@ -874,10 +875,12 @@ void GameAI(int skip)
 		enemy.Play(LOOP, (float)skip, FALSE, TRUE);
 	}
 	else{
-		enemy.Play(START, curframe, FALSE, TRUE);
-		curframe += 1.0f;
-
-
+      BOOL4 playOver;
+      playOver = enemy.Play(ONCE, (float)skip, FALSE, TRUE);
+      if (playOver == FALSE && enemycurPoseID != enemy_DieID){
+         enemycurPoseID = enemy_idleID;
+		   enemy.SetCurrentAction(NULL, 0, enemycurPoseID);
+      }
 	}
 	
 	
@@ -896,14 +899,12 @@ void GameAI(int skip)
 			curPoseID = idleID;
 			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 		}
-		if (attackprocess == 1)
+		if (attackprocess == 2 && enemycurPoseID == enemy_idleID)
 		{
 			if (attackjudge(actor, enemy, 0, 100.0f, 0.10f))
 			{	
 				enemycurPoseID = enemy_DamageLID;
 				enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
-				curframe = 0.0f;
-				framelimit = 18.0f;
 			}
 		}
 		//
@@ -918,14 +919,12 @@ void GameAI(int skip)
 			curPoseID = idleID;
 			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 		}
-		if (attackprocess == 1)
+		if (attackprocess == 2 && enemycurPoseID == enemy_idleID)
 		{
 			if (attackjudge(actor, enemy, 1, 150.0f, 0.5f))
 			{
 				enemycurPoseID = enemy_DamageHID;
 				enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
-				curframe = 0.0f;
-				framelimit = 28.0f;
 			}
 		}
 	}
@@ -940,23 +939,18 @@ void GameAI(int skip)
 			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 	
 		}
-		if (attackprocess == 1)
+		if (attackprocess == 2 && enemycurPoseID == enemy_idleID)
 		{
 			if (attackjudge(actor, enemy, 1, 200.0f, 0.5f))
 			{
 				enemycurPoseID = enemy_DieID;
 				enemy.SetCurrentAction(NULL, 0, enemy_DieID, 5.0f);
-				curframe = 0.0f;
-				framelimit = 999.0f;
 			}
 		}
 		//
 	}
-	if (curframe >= framelimit&&enemycurPoseID != enemy_idleID)
-	{
-		enemycurPoseID = enemy_idleID;
-		enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
-	}
+
+
 	if (attackFlag == 0){
 		direction();
 		//&& (curPoseID != fightID) && (curPoseID != fightID2) && (curPoseID != fightID3)
@@ -969,7 +963,7 @@ void GameAI(int skip)
 
 			if (lrF == 0)
 			{
-				actor.TurnRight(5.0f);
+				actor.TurnRight(turnSpeed);
 				count--;
 				if (count == 0)
 				{
@@ -989,7 +983,7 @@ void GameAI(int skip)
 			}
 			else
 			{
-				actor.TurnRight(-5.0f);
+				actor.TurnRight(-turnSpeed);
 				count--;
 				if (count == 0)
 				{
@@ -1474,12 +1468,26 @@ void Movement(BYTE code, BOOL4 value)
 
 
 	if (value) {
-
-
-		if (curPoseID != runID&&attackFlag==0){
+		if (curPoseID != runID&&attackFlag==0 &&
+         (code == FY_UP || code == FY_DOWN || code == FY_LEFT ||code == FY_RIGHT)){
 			curPoseID = runID;
 			actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 		}
+      else if (code == FY_Z && attackFlag == 0) {//我移動過了
+		curPoseID = fightID;
+		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		attackFlag = 1;
+	   }
+	   else if (code == FY_X && attackFlag == 0) {
+		   curPoseID = fightID2;
+		   actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		   attackFlag = 2;
+	   }
+	   else if (code == FY_C && attackFlag == 0) {
+		   curPoseID = fightID3;
+		   actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
+		   attackFlag = 3;
+	   }
 	}
 	else if (!FyCheckHotKeyStatus(FY_UP) &&
 		!FyCheckHotKeyStatus(FY_LEFT) &&
@@ -1489,21 +1497,8 @@ void Movement(BYTE code, BOOL4 value)
 		curPoseID = idleID;
 		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 	}
-	if (code == FY_Z && attackFlag == 0) {//我移動過了
-		curPoseID = fightID;
-		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
-		attackFlag = 1;
-	}
-	else if (code == FY_X && attackFlag == 0) {
-		curPoseID = fightID2;
-		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
-		attackFlag = 2;
-	}
-	else if (code == FY_C && attackFlag == 0) {
-		curPoseID = fightID3;
-		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
-		attackFlag = 3;
-	}
+
+	
 
 	if (code == FY_UP&& attackFlag == 0){
 		if (value) {
