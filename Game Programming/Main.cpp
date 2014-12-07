@@ -30,6 +30,7 @@ int oldX, oldY, oldXM, oldYM, oldXMM, oldYMM;
 int turnF = 0;
 int count = 0;
 float turnSpeed = 15.0f; //turning spped, need to be the common factor of 45, 90, 135, 180
+int enemyLife = 5;
 
 int lrF = 0;
 int upF = 0;
@@ -866,24 +867,31 @@ void GameAI(int skip)
 	FnCharacter actor, enemy;
 	FnObject cp;
 
+   
+
 	// play character pose
 	actor.ID(actorID);
 	actor.Play(LOOP, (float)skip, FALSE, TRUE);
 
 	// play enemy pose
 	enemy.ID(enemyID);
-	if (enemycurPoseID == enemy_idleID){
+   if (enemycurPoseID == enemy_idleID){
 		enemy.Play(LOOP, (float)skip, FALSE, TRUE);
 	}
 	else{
-      BOOL4 playOver;
+      BOOL4 playOver;  // if animation is over
       playOver = enemy.Play(ONCE, (float)skip, FALSE, TRUE);
       if (playOver == FALSE && enemycurPoseID != enemy_DieID){
          enemycurPoseID = enemy_idleID;
 		   enemy.SetCurrentAction(NULL, 0, enemycurPoseID);
+         // check if enemy die
+         if (enemyLife <= 0 && enemycurPoseID != enemy_DieID){
+            enemycurPoseID = enemy_DieID;
+		      enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
+         }
       }
-	}
-	
+	} 
+
 	
 	cp.ID(cpID);
 	float fDir[3], afDir[3], tempd[3];
@@ -906,6 +914,7 @@ void GameAI(int skip)
 			{	
 				enemycurPoseID = enemy_DamageLID;
 				enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
+            enemyLife -= 1;
 			}
 		}
 		//
@@ -926,6 +935,7 @@ void GameAI(int skip)
 			{
 				enemycurPoseID = enemy_DamageHID;
 				enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
+            enemyLife -= 2;
 			}
 		}
 	}
@@ -944,8 +954,9 @@ void GameAI(int skip)
 		{
 			if (attackjudge(actor, enemy, 1, 200.0f, 0.5f))
 			{
-				enemycurPoseID = enemy_DieID;
-				enemy.SetCurrentAction(NULL, 0, enemy_DieID, 5.0f);
+				enemycurPoseID = enemy_DamageHID;
+				enemy.SetCurrentAction(NULL, 0, enemycurPoseID, 5.0f);
+            enemyLife -= 5;
 			}
 		}
 		//
