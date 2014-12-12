@@ -14,14 +14,18 @@
  ===============================================================*/
 #include "FlyWin32.h"
 #include <math.h>
+#include <string.h>
 #define PI 3.14159265
+
+
+
 
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
 OBJECTid cID, tID, cpID;              // the main camera and the terrain for terrain following
-CHARACTERid actorID,actorID2;            // the major character
-ACTIONid idleID, runID,attackID1,attackID2,attackID3,curPoseID,idleID2,curPoseID2,dieID2,hurtID2; // two actions
+CHARACTERid actorID;            // the major character
+ACTIONid idleID, runID,attackID1,attackID2,attackID3,curPoseID; // two actions
 ROOMid terrainRoomID = FAILED_ID;
 TEXTid textID = FAILED_ID;
 
@@ -42,10 +46,6 @@ int AttackCounter=0;
 int Attack1Flag=0;
 int Attack2Flag=0;
 int Attack3Flag=0;
-int AttackHitF = 0;
-int DonzoDeadF = 0;
-int HitCounter=0;
-int DonzoLife=5;
 
 float angleAB=0.0f;
 
@@ -58,9 +58,11 @@ int upingF=0;
 int upingDir=0;
 int zoneFlag = 0;
 int zoneCounter = 0;
-FnCharacter actor,actor2;
+FnCharacter actor;
 FnObject cp;
 FnObject terrain;
+FnScene scene;
+BOOL4 beOK;
 
 // hotkey callbacks
 void QuitGame(BYTE, BOOL4);
@@ -128,7 +130,6 @@ float GetAngle(int a1, int a2) {
 	float actor1Fdir[3],actor1Pos[3];
 	float resultFdir[3],actor2Pos[3];
 	float cross,lengthA,lengthB;
-	float rangeLength,rangeAngle;
 
 	actorLocal.GetPosition(actor1Pos);
 	enemy.GetPosition(actor2Pos);
@@ -143,7 +144,7 @@ float GetAngle(int a1, int a2) {
 	lengthB=sqrt(pow(actor1Fdir[0],2)+pow(actor1Fdir[1],2)+pow(actor1Fdir[2],2));
 		
 	
-	angle=acos(cross/lengthA/lengthB)*180.0/PI;
+	angle=(float)acos(cross/lengthA/lengthB)*180.0/PI;
 
 	return angle;
 
@@ -154,7 +155,6 @@ bool peopleCollide(int a1, int a2) {
    float angle;
 	distance = GetDistance(a1, a2);
 	angle=GetAngle(a1, a2);
-	angleAB=angle;
 	if ((distance < 50.0f)&&(angle<45.0f))
 		return true;
 	else
@@ -179,54 +179,7 @@ bool testIFforward(int a1, int a2){
 	}
 }
 
-void AttackHit(int attack)
-{
-	float lengthLocal,angleLocal,rangeLength,rangeAngle,resultFdir[3];
-	
-	angleLocal=GetAngle(actorID,actorID2);
-	lengthLocal=GetDistance(actorID,actorID2);
 
-	//angleAB=angleLocal;
-	
-	getResultFdir(actorID,actorID2,resultFdir);
-
-	if(attack==1){
-		rangeLength=240.0f;
-		rangeAngle=30.0f;
-	}else if(attack==2){
-		rangeLength=240.0f;
-		rangeAngle=60.0f;
-	}else if(attack==3){
-		rangeLength=240.0f;
-		rangeAngle=180.0f;
-	}
-
-	if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
-
-		actor2.SetDirection(resultFdir,NULL);
-
-		if(DonzoLife>0){
-			if(attack==1){
-				DonzoLife--;
-			}else if(attack==2){
-				DonzoLife=DonzoLife-2;
-			}else if(attack==3){
-				DonzoLife=DonzoLife-5;
-			}
-		}
-		
-		if(DonzoLife>0){
-			AttackHitF=1;
-			curPoseID2 = hurtID2;
-			actor2.SetCurrentAction(NULL, 0, curPoseID2, 5.0f);
-			HitCounter=35;
-		}else if((DonzoLife<=0)&&(DonzoDeadF!=1)){
-			DonzoDeadF=1;
-			curPoseID2 = dieID2;
-			actor2.SetCurrentAction(NULL, 0, curPoseID2, 5.0f);
-		}
-	}
-}
 
 void direction()
 {
@@ -676,11 +629,140 @@ int testHit()
 	 return(terrain.HitTest(origint, dirt));
 }
 
+class enemy { 
+public: 
+	enemy(char* name,float*pos_c,float*fDir_c,float*uDir_c){
+
+		AttackHitF = 0;
+        DeadF = 0;
+        HitCounter=0;
+		
+		actorID_c = scene.LoadCharacter(name);
+   
+        actor_c.ID(actorID_c);
+		actor_c.SetDirection(fDir_c, uDir_c);
+		actor_c.SetTerrainRoom(terrainRoomID, 10.0f);
+        beOK = actor_c.PutOnTerrain(pos_c);
+
+		if(strcmp(name,"Donzo2")==0){
+			enemy_category=0;
+			Life=10;
+			idleID_c = actor_c.GetBodyAction(NULL, "Idle");
+			hurtID_c = actor_c.GetBodyAction(NULL, "DamageH");
+			dieID_c = actor_c.GetBodyAction(NULL, "Die");
+		}else if(strcmp(name,"Robber02")==0){
+		    enemy_category=1;
+			Life=5;
+			idleID_c = actor_c.GetBodyAction(NULL, "CombatIdle");
+			hurtID_c = actor_c.GetBodyAction(NULL, "Damage2");
+			dieID_c = actor_c.GetBodyAction(NULL, "Die");
+		}
+
+		curPoseID_c = idleID_c;
+		actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
+		actor_c.Play(START, 0.0f, FALSE, TRUE);
+		actor_c.TurnRight(90.0f);
+
+	} 
+
+	void playAction(int skip){
+	
+		if((AttackHitF!=1)&&(DeadF!=1)){
+			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
+		}else if(AttackHitF==1){
+			actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
+			HitCounter--;
+			if(HitCounter==0){
+				curPoseID_c = idleID_c;
+				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 0.0f);
+				AttackHitF=0;
+			}
+		}else if(DeadF==1){
+			actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
+		}
+	}
+
+	void beHit(float rangeLength,float rangeAngle,int damage){
+		float lengthLocal,angleLocal,resultFdir[3];
+	    angleLocal=GetAngle(actorID,actorID_c);
+	    lengthLocal=GetDistance(actorID,actorID_c);
+		getResultFdir(actorID,actorID_c,resultFdir);
+
+		if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
+
+			if(Life>0){
+				Life-=damage;
+				actor_c.SetDirection(resultFdir,NULL);
+			}
+		
+			if(Life>0){
+				AttackHitF=1;
+				curPoseID_c = hurtID_c;
+				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				if(enemy_category==0){
+					HitCounter=35;
+				}else if(enemy_category==1){
+					HitCounter=25;
+				}
+			}else if((Life<=0)&&(DeadF!=1)){
+				AttackHitF=0;
+				DeadF=1;
+				curPoseID_c = dieID_c;
+				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+			}
+		}
+	}
+
+	CHARACTERid getCid(){
+		return actorID_c;
+	}
+    
+
+private:
+    int enemy_category;
+	FnCharacter actor_c;
+	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c;
+	CHARACTERid actorID_c;
+	int AttackHitF;
+    int DeadF;
+    int HitCounter;
+    int Life;
+};
+
+enemy * enemyArray[2];
+
+void AttackHit(int attack)
+{
+	float rangeLength,rangeAngle;
+	int damage;
+	int y;
+
+	if(attack==1){
+		rangeLength=135.0f;
+		rangeAngle=30.0f;
+		damage=1;
+	}else if(attack==2){
+		rangeLength=135.0f;
+		rangeAngle=60.0f;
+		damage=2;
+	}else if(attack==3){
+		rangeLength=135.0f;
+		rangeAngle=180.0f;
+		damage=5;
+	}
+
+	for(y=0;y<2;y++){
+		enemyArray[y]->beHit(rangeLength,rangeAngle,damage);
+	}
+}
+
 
 void FyMain(int argc, char **argv)
 {
-   // create a new world
-   BOOL4 beOK = FyStartFlyWin32("NTU@2014 Homework #01 - Use Fly2", 0, 0, 1024, 768, FALSE);
+   int y;
+	
+	// create a new world
+   beOK = FyStartFlyWin32("NTU@2014 Homework #01 - Use Fly2", 0, 0, 1024, 768, FALSE);
 
    // setup the data searching paths
    FySetShaderPath("Data\\NTU5\\Shaders");
@@ -695,7 +777,6 @@ void FyMain(int argc, char **argv)
 
    // create a 3D scene
    sID = FyCreateScene(10);
-   FnScene scene;
    scene.ID(sID);
 
    // load the scene
@@ -720,11 +801,9 @@ void FyMain(int argc, char **argv)
    FySetTexturePath("Data\\NTU5\\Characters");
    FySetCharacterPath("Data\\NTU5\\Characters");
    actorID = scene.LoadCharacter("Lyubu2");
-   actorID2 = scene.LoadCharacter("Donzo2");
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
-   float pos2[3], fDir2[3], uDir2[3];
    
    actor.ID(actorID);
    pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
@@ -732,17 +811,8 @@ void FyMain(int argc, char **argv)
    uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
    actor.SetDirection(fDir, uDir);
 
-   actor2.ID(actorID2);
-   pos2[0] = 3669.0f; pos2[1] = -3208.0f; pos2[2] = 1000.0f;
-   fDir2[0] = -1.0f; fDir2[1] = -1.0f; fDir2[2] = -0.0f;
-   uDir2[0] = 0.0f; uDir2[1] = 0.0f; uDir2[2] = 1.0f;
-   actor2.SetDirection(fDir2, uDir2);
-
    actor.SetTerrainRoom(terrainRoomID, 10.0f);
    beOK = actor.PutOnTerrain(pos);
-
-   actor2.SetTerrainRoom(terrainRoomID, 10.0f);
-   beOK = actor2.PutOnTerrain(pos2);
 
    // Get two character actions pre-defined at Lyubu2
    idleID = actor.GetBodyAction(NULL, "Idle");
@@ -751,21 +821,24 @@ void FyMain(int argc, char **argv)
    attackID2 = actor.GetBodyAction(NULL, "NormalAttack3");
    attackID3 = actor.GetBodyAction(NULL, "NormalAttack2");
 
-   idleID2 = actor2.GetBodyAction(NULL, "Idle");
-   hurtID2 = actor2.GetBodyAction(NULL, "DamageH");
-   dieID2 = actor2.GetBodyAction(NULL, "Die");
-   
-
    // set the character to idle action
    curPoseID = idleID;
    actor.SetCurrentAction(NULL, 0, curPoseID);
    actor.Play(START, 0.0f, FALSE, TRUE);
    actor.TurnRight(90.0f);
 
-   curPoseID2 = idleID2;
-   actor2.SetCurrentAction(NULL, 0, curPoseID2);
-   actor2.Play(START, 0.0f, FALSE, TRUE);
-   actor2.TurnRight(90.0f);
+   
+   fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
+   for(y=0;y<2;y++){
+	   pos[0]+=150.0f;
+	   if(y==0){
+	     enemyArray[y]=new enemy("Donzo2",pos,fDir,uDir);
+	   }else{
+		 enemyArray[y]=new enemy("Robber02",pos,fDir,uDir);
+	   }
+   }
+
+
 
    // translate the camera
    cID = scene.CreateObject(CAMERA);
@@ -834,6 +907,10 @@ void FyMain(int argc, char **argv)
 
    // invoke the system
    FyInvokeFly(TRUE);
+
+   for(y=0;y<2;y++){
+    delete enemyArray[y];
+   }
 }
 
 
@@ -845,6 +922,7 @@ void GameAI(int skip)
 {
    FnCharacter actor,actor2;
    FnObject cp;
+   int y;
 
    // play character pose
    actor.ID(actorID);
@@ -885,22 +963,11 @@ void GameAI(int skip)
 			Attack3Flag=0;
 		}
    }
-	
-   actor2.ID(actorID2);
-   if((AttackHitF!=1)&&(DonzoDeadF!=1)){
-		actor2.Play(LOOP, (float) skip, FALSE, TRUE);
-   }else if(AttackHitF==1){
-		actor2.Play(ONCE, (float) skip, FALSE, TRUE);
-		HitCounter--;
-		if(HitCounter==0){
-			curPoseID2 = idleID2;
-			actor2.SetCurrentAction(NULL, 0, curPoseID2, 0.0f);
-			AttackHitF=0;
-		}
-   }else if(DonzoDeadF==1){
-	   actor2.Play(ONCE, (float) skip, FALSE, TRUE);
-   }
 
+   for(y=0;y<2;y++){
+	enemyArray[y]->playAction(skip);
+   }
+	
 
    cp.ID(cpID);
    float fDir[3], afDir[3], tempd[3];
@@ -961,8 +1028,13 @@ void GameAI(int skip)
    
    if ((arrowFlag==0)&&((upArrow)&&(!leftArrow)&&(!rightArrow)&&(!downArrow))){
 	 if((turnF==0)&&(upingF==0)){
-		 bool continueFlag=testIFforward(actorID,actorID2);
-
+		 bool continueFlag;
+		 for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		 }
 
 	 if(continueFlag){
       walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
@@ -1081,7 +1153,13 @@ void GameAI(int skip)
 
    if ((arrowFlag==2)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
      if((turnF==0)&&(upingF==0)){
-		 bool continueFlag=testIFforward(actorID,actorID2);
+		 bool continueFlag;
+		 for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		 }
 		
 		 if(continueFlag){
 		  if(zoneFlag==2){
@@ -1118,7 +1196,13 @@ void GameAI(int skip)
   
    if ((arrowFlag==3)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
      if((turnF==0)&&(upingF==0)){
-		 bool continueFlag=testIFforward(actorID,actorID2);
+		 bool continueFlag;
+		 for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		 }
 
 		 if(continueFlag){
 		  if(zoneFlag==2){
@@ -1156,7 +1240,13 @@ void GameAI(int skip)
 
    if ((arrowFlag==1)&&((!upArrow)&&(!leftArrow)&&(!rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
-		   bool continueFlag=testIFforward(actorID,actorID2);
+		   bool continueFlag;
+		   for(y=0;y<2;y++){
+			 continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			 if(!continueFlag){
+				break;
+			}
+		   }
 		  
 		   if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
@@ -1220,7 +1310,7 @@ void GameAI(int skip)
 		  
 					if(zoneCounter>0){
 						localF=1;
-						pushCemaraUp2();
+						//pushCemaraUp2();
 						zoneCounter--;
 					}else
 					{
@@ -1248,7 +1338,13 @@ void GameAI(int skip)
 
    if ((arrowFlag==4)&&((upArrow)&&(!leftArrow)&&(rightArrow)&&(!downArrow))){
 	   if((turnF==0)&&(upingF==0)){
-		  bool continueFlag=testIFforward(actorID,actorID2);
+		  bool continueFlag;
+		  for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		  }
 		  if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
@@ -1256,10 +1352,10 @@ void GameAI(int skip)
 				actor.TurnRight(-45.0f);
 				pushCemaraLR();
 				actor.TurnRight(45.0f);
-				if (testHit()<=0) {
+				/*if (testHit()<=0) {
 					upingF=1;
 					upingDir=2;
-				}
+				}*/
 			}
 	      }
 	   }
@@ -1267,7 +1363,13 @@ void GameAI(int skip)
 
     if ((arrowFlag==5)&&((upArrow)&&(leftArrow)&&(!rightArrow)&&(!downArrow))){
 	   if((turnF==0)&&(upingF==0)){
-		  bool continueFlag=testIFforward(actorID,actorID2); 
+		  bool continueFlag;
+		  for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		  } 
 		  if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
@@ -1276,10 +1378,10 @@ void GameAI(int skip)
 				pushCemaraLR();
 				actor.TurnRight(-45.0f);
 
-				if (testHit()<=0) {
+				/*if (testHit()<=0) {
 					upingF=1;
 					upingDir=3;
-				}
+				}*/
 			}
 	      }
 	   }
@@ -1287,7 +1389,13 @@ void GameAI(int skip)
 
 	 if ((arrowFlag==6)&&((!upArrow)&&(!leftArrow)&&(rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
-		 bool continueFlag=testIFforward(actorID,actorID2);
+		 bool continueFlag;
+		 for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		 }
 		 if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
@@ -1295,10 +1403,10 @@ void GameAI(int skip)
 				actor.TurnRight(-135.0f);
 				pushCemaraLR();
 				actor.TurnRight(135.0f);
-				if (testHit()<=0) {
+				/*if (testHit()<=0) {
 					upingF=1;
 					upingDir=4;
-				}
+				}*/
 			}
 	      }
 	   }
@@ -1306,7 +1414,13 @@ void GameAI(int skip)
 
 	  if ((arrowFlag==7)&&((!upArrow)&&(leftArrow)&&(!rightArrow)&&(downArrow))){
 	   if((turnF==0)&&(upingF==0)){
-		  bool continueFlag=testIFforward(actorID,actorID2);  
+		  bool continueFlag;
+		  for(y=0;y<2;y++){
+			continueFlag=testIFforward(actorID,enemyArray[y]->getCid());
+			if(!continueFlag){
+				break;
+			}
+		  }  
 		  if(continueFlag){
 			walkFlag = actor.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 			if (walkFlag == WALK){
@@ -1314,10 +1428,10 @@ void GameAI(int skip)
 				actor.TurnRight(135.0f);
 				pushCemaraLR();
 				actor.TurnRight(-135.0f);
-				if (testHit()<=0) {
+				/*if (testHit()<=0) {
 					upingF=1;
 					upingDir=5;
-				}
+				}*/
 			}
 	      }
 	   }
@@ -1644,4 +1758,5 @@ void ZoomCam(int x, int y)
       oldYMM = y;
    }
 }
+
 
