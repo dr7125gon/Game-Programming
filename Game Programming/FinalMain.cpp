@@ -59,70 +59,76 @@ void getResultFdir(int a1, int a2, float *ary) {
 	float resultFdir[3],actor2Pos[3],actor1Pos[3];
 	actorLocal.GetPosition(actor1Pos);
 	enemy.GetPosition(actor2Pos);
-	resultFdir[0]=actor2Pos[0]-actor1Pos[0];
-	resultFdir[1]=actor2Pos[1]-actor1Pos[1];
-	resultFdir[2]=actor2Pos[2]-actor1Pos[2];
+	resultFdir[0]=actor1Pos[0]-actor2Pos[0];
+	resultFdir[1]=actor1Pos[1]-actor2Pos[1];
+	resultFdir[2]=actor1Pos[2]-actor2Pos[2];
 	
-	ary[0]=-(resultFdir[0]);
-	ary[1]=-(resultFdir[1]);
-	ary[2]=-(resultFdir[2]);
+	ary[0]=resultFdir[0];
+	ary[1]=resultFdir[1];
+	ary[2]=resultFdir[2];
+}
+
+//夾角計算器
+float getAngle(float* fDir0,float*fDir1,bool Zflag){
+	
+		float angle,cross,lengthA,lengthB;
+
+		if(Zflag){
+			cross=fDir0[0]*fDir1[0]+fDir0[1]*fDir1[1]+fDir0[2]*fDir1[2];
+			lengthA=sqrt(pow(fDir0[0],2)+pow(fDir0[1],2)+pow(fDir0[2],2));
+			lengthB=sqrt(pow(fDir1[0],2)+pow(fDir1[1],2)+pow(fDir1[2],2));
+		}else{
+			cross=fDir0[0]*fDir1[0]+fDir0[1]*fDir1[1];
+			lengthA=sqrt(pow(fDir0[0],2)+pow(fDir0[1],2));
+			lengthB=sqrt(pow(fDir1[0],2)+pow(fDir1[1],2));
+		}
+		
+		angle=(float)acos(cross/lengthA/lengthB)*180.0/PI;
+
+		return angle;
+
 }
 
 //取得兩角色之間夾角
-float GetAngle(int a1, int a2) {
+float getAngleWithCharacterID(int a1, int a2,bool Zflag) {
 	FnCharacter actorLocal;
 	actorLocal.ID(a1);
 	FnCharacter enemy;
 	enemy.ID(a2);
-	float angle;
-	float actor1Fdir[3],actor1Pos[3];
-	float resultFdir[3],actor2Pos[3];
-	float cross,lengthA,lengthB;
+	float actor1Fdir[3];
+	float resultFdir[3];
 
-	actorLocal.GetPosition(actor1Pos);
-	enemy.GetPosition(actor2Pos);
-	resultFdir[0]=actor2Pos[0]-actor1Pos[0];
-	resultFdir[1]=actor2Pos[1]-actor1Pos[1];
-	resultFdir[2]=actor2Pos[2]-actor1Pos[2];
+	getResultFdir(a2,a1,resultFdir);
 
 	actorLocal.GetDirection(actor1Fdir,NULL);
 
-	cross=resultFdir[0]*actor1Fdir[0]+resultFdir[1]*actor1Fdir[1]+resultFdir[2]*actor1Fdir[2];
-	lengthA=sqrt(pow(resultFdir[0],2)+pow(resultFdir[1],2)+pow(resultFdir[2],2));
-	lengthB=sqrt(pow(actor1Fdir[0],2)+pow(actor1Fdir[1],2)+pow(actor1Fdir[2],2));
-		
+	return getAngle(resultFdir,actor1Fdir,Zflag);
 	
-	angle=(float)acos(cross/lengthA/lengthB)*180.0/PI;
-
-	return angle;
-
-}
-
-//兩角是否重疊
-bool peopleCollide(int a1, int a2) {
-   float distance;
-   float angle;
-	distance = GetDistance(a1, a2);
-	angle=GetAngle(a1, a2);
-	if ((distance < 50.0f)&&(angle<45.0f))
-		return true;
-	else
-		return false;
 }
 
 //測試是否能前進
-bool testIFforward(int a1, int a2){
+bool testIFforward(int a1, int a2,float distanceLimit){
 	FnCharacter actorLocal;
 	bool FlagLocal;
 	int walkFlag;
+	int previousDistance=GetDistance(a1, a2);
 
 	actorLocal.ID(a1);
 	walkFlag=actorLocal.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 
 	if(walkFlag==WALK){
-		FlagLocal=peopleCollide(a1,a2);
-		actorLocal.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
-		return !FlagLocal;
+		if(previousDistance<=distanceLimit){
+			if(GetDistance(a1, a2)<=previousDistance){
+				actorLocal.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
+				return false;
+			}else{
+				actorLocal.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
+				return true;
+			}
+		}else{
+			actorLocal.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
+			return true;
+		}
 	}
 	else{
 		return true;
@@ -323,7 +329,7 @@ class Controller{
 
 class enemy { 
 public: 
-	enemy(char* name,float*pos_c,float*fDir_c,float*uDir_c){
+	enemy(char* name,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,float walkSpeed_input,float toPlayerRange_input,int HP_input,int index_input){
 		//初始化
 		actorID_c = scene.LoadCharacter(name);
    
@@ -334,32 +340,64 @@ public:
 
 		if(strcmp(name,"Donzo2")==0){
 			enemy_category=0;
-			Life=10;
 			idleID_c = actor_c.GetBodyAction(NULL, "Idle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "DamageH");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
+			runID_c = actor_c.GetBodyAction(NULL, "Run");
+			attackL2ID_c=actor_c.GetBodyAction(NULL, "AttackL2");
 		}else if(strcmp(name,"Robber02")==0){
 		    enemy_category=1;
-			Life=5;
 			idleID_c = actor_c.GetBodyAction(NULL, "CombatIdle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "Damage2");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
+			runID_c = actor_c.GetBodyAction(NULL, "Run");
 		}
+		HP=HP_input;
+
 
 		curPoseID_c = idleID_c;
 		actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
 		actor_c.Play(START, 0.0f, FALSE, TRUE);
 		actor_c.TurnRight(90.0f);
 
+		turnRLflag=-1;
+		turnSpeed=turnSpeed_input;
+		timeCounter=-1;
+		HP=HP_input;
+		index=index_input;
+		walkSpeed=walkSpeed_input;
+		toPlayerRange=toPlayerRange_input;
+		hitFlag=false;
+		damageToPlayer=-1;
+
+		savedTurnTarget[0]=-9999.0;
+		savedTurnTarget[1]=-9999.0;
+		savedTurnTarget[2]=-9999.0;
 	} 
 
 	//GameAI call this
 	void doActions(int skip){
 
-		if(curPoseID_c==idleID_c){
+		//攻擊判定
+		if(timeCounter!=-1){
+				if(timeCounter==45){
+					if(curPoseID_c==attackL2ID_c){
+						attackHit(0);
+					}
+				}
+				timeCounter--;
+		}
+		
+		if((curPoseID_c==idleID_c)||(curPoseID_c==runID_c)){
 			
 			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
-		
+			
+			//轉向跑步與攻擊
+			if(playerHP_c>0){
+				turn();
+				runAndAttack();
+			}
+
 		}else{
 			BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
 
@@ -374,21 +412,25 @@ public:
 	//判斷是否被擊中並設定對應動作
 	void beHit(CHARACTERid attackerID,float rangeLength,float rangeAngle,int damage){
 		float lengthLocal,angleLocal,resultFdir[3];
-	    angleLocal=GetAngle(attackerID,actorID_c);
+		float fdir[3],udir[3];
+
+	    angleLocal=getAngleWithCharacterID(attackerID,actorID_c,true);
 	    lengthLocal=GetDistance(attackerID,actorID_c);
-		getResultFdir(attackerID,actorID_c,resultFdir);
-
+	
 		if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
-
-			if(Life>0){
-				Life-=damage;
-				actor_c.SetDirection(resultFdir,NULL);
+			timeCounter=-1;
+			if(HP>0){
+				HP-=damage;
+				getResultFdir(attackerID,actorID_c,resultFdir);
+				actor_c.GetDirection(fdir,udir);
+				resultFdir[2]=fdir[2];
+				actor_c.SetDirection(resultFdir,udir);
 			}
 		
-			if(Life>0){
+			if(HP>0){
 				curPoseID_c = hurtID_c;
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-			}else if((Life<=0)&&(curPoseID_c != dieID_c)){
+			}else if((HP<=0)&&(curPoseID_c != dieID_c)){
 				curPoseID_c = dieID_c;
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 			}
@@ -398,21 +440,145 @@ public:
 	CHARACTERid getCid(){
 		return actorID_c;
 	}
-    
 
+	//轉向設定
+	void turnSetting(CHARACTERid playerID,int playerHP){
+		playerID_c=playerID;
+		playerHP_c=playerHP;
+
+		if((playerHP_c>0)&&(curPoseID_c!=dieID_c)){
+			float angle;
+			
+			angle=getAngleWithCharacterID(actorID_c,playerID,false);
+
+			if(angle>25.0f){
+				
+					getResultFdir(playerID,actorID_c,savedTurnTarget);
+					
+					actor_c.TurnRight(5.0f);
+
+					if(getAngleWithCharacterID(actorID_c,playerID,false)<angle){
+						turnRLflag=0;
+					}else{
+						turnRLflag=1;
+					}
+
+					actor_c.TurnRight(-5.0f);
+
+					if(curPoseID_c==idleID_c){
+						curPoseID_c = runID_c;
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					}
+			}
+		}
+	}
+
+	//讓外部知道命中player
+	int ifHitPlayer(){
+		if(hitFlag){
+			hitFlag=false;
+			return damageToPlayer;
+		}else{
+			return -1;
+		}
+	}
+    
 private:
     int enemy_category;
 	FnCharacter actor_c;
-	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c;
+	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c,runID_c,attackL2ID_c;
 	CHARACTERid actorID_c;
-    int Life;
+	CHARACTERid playerID_c;
+	int playerHP_c;
+	float turnSpeed;
+	float savedTurnTarget[3];
+	int turnRLflag;
+	int timeCounter;
+	int HP;
+	int index;
+	float walkSpeed;
+	float toPlayerRange;
+	bool hitFlag;
+	int damageToPlayer;
+
+	//攻擊命中傷害判定
+	void attackHit(int index){
+		float angleLocal;
+		float lengthLocal;
+
+		angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
+		lengthLocal=GetDistance(actorID_c,playerID_c);
+
+		if(index==0){
+			if((angleLocal<=60.0f)&&(lengthLocal<=135.0f)){
+				hitFlag=true;
+				damageToPlayer=4;
+			}
+		}
+	}
+
+	void runAndAttack(){
+		if(turnRLflag==-1){
+				if(GetDistance(actorID_c,playerID_c)>toPlayerRange){
+					if(curPoseID_c!=runID_c){
+						curPoseID_c=runID_c;
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					}
+					int walkFlag=actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
+					//大於一定range就跑向player
+				}else{
+						if((timeCounter<0)&&(playerHP_c>0)){
+							curPoseID_c = attackL2ID_c;
+							actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+							timeCounter=60;
+						}
+				}	
+				//否則就每隔段時間發動攻擊
+		}
+	}
+	
+	//轉向player
+	void turn(){
+		float actrFDir[3];
+		float actrUDir[3];
+		
+		if(turnRLflag!=-1){
+
+			if(curPoseID_c!=runID_c){
+					curPoseID_c=runID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+			}
+
+			//旋轉
+			turnHelper();
+
+			//轉完後若夾角小於旋轉速度就直接設定，並取消turnRLflag
+			actor_c.GetDirection(actrFDir,actrUDir);
+		
+			if(getAngle(savedTurnTarget,actrFDir,false)<turnSpeed){
+				savedTurnTarget[2]=actrFDir[2];
+				actor_c.SetDirection(savedTurnTarget,actrUDir);
+				turnRLflag=-1;
+			}
+		}
+	}
+	
+	//依據turnRLflag左轉或右轉
+	void turnHelper(){
+		if(turnRLflag==0){
+			actor_c.TurnRight(turnSpeed);
+		}else if(turnRLflag==1){
+			actor_c.TurnRight(-turnSpeed);
+		}
+	}
 };
 
 enemy * enemyArray[2];
+CHARACTERid enemyID[2];
 
 class Player{
 public:
-	Player(Controller*controller_input,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input){
+	Player(Controller*controller_input,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,int walkSpeed_input,int HP_input){
 		//初始化資料
 		
 		actorID_c = scene.LoadCharacter("Lyubu2");
@@ -425,7 +591,7 @@ public:
 		idleID_c = actor_c.GetBodyAction(NULL, "Idle");
         runID_c = actor_c.GetBodyAction(NULL, "Run");
 		dieID_c = actor_c.GetBodyAction(NULL, "Die");
-		hurtID_c=actor_c.GetBodyAction(NULL, "HeavyDamaged");
+		hurtID_c=actor_c.GetBodyAction(NULL, "LeftDamaged");
 		atk1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
 		atk2ID_c=actor_c.GetBodyAction(NULL, "NormalAttack3");
 		atk3ID_c=actor_c.GetBodyAction(NULL, "NormalAttack2");
@@ -441,11 +607,14 @@ public:
 		actor_c.Play(START, 0.0f, FALSE, TRUE);
 		actor_c.TurnRight(90.0f);
 
-		turnRLflag=-1;
-		turnSpeed=turnSpeed_input;
+		
 		controller_c=controller_input;
 		walkFlag=DO_NOTHING;
 		timeCounter=-1;
+		turnRLflag=-1;
+		turnSpeed=turnSpeed_input;
+		walkSpeed=walkSpeed_input;
+		HP=HP_input;
 	}
 
 	void setTurnSpeed(float input){
@@ -454,6 +623,10 @@ public:
 
 	float getTurnSpeed(){
 		return turnSpeed;
+	}
+
+	int getPlayerHP(){
+		return HP;
 	}
 
 	//設定player跑步動作
@@ -474,7 +647,7 @@ public:
 	//設定player攻擊動作
 	void setAttackingAction(int index){
 		
-			if ((curPoseID_c != atk1ID_c)&&(curPoseID_c != atk2ID_c)&&(curPoseID_c != atk3ID_c)){
+			if ((curPoseID_c != atk1ID_c)&&(curPoseID_c != atk2ID_c)&&(curPoseID_c != atk3ID_c)&&(curPoseID_c != hurtID_c)){
 				if(index==0){
 					curPoseID_c = atk1ID_c;
 					timeCounter=0;
@@ -494,7 +667,6 @@ public:
 		float playerFDir[3];
 		float playerUDir[3];
 		float angle;
-		float savedZvalue;
 
 		if(curPoseID_c==runID_c){
 		
@@ -505,21 +677,20 @@ public:
 
 			//算角色和目標方向之夾角
 			actor_c.GetDirection(playerFDir,playerUDir);
-			savedZvalue=playerFDir[2];
-			playerFDir[2]=0.0f;
 
-			angle=getAngle(fDir,playerFDir);
+			angle=getAngle(fDir,playerFDir,false);
 
 			//若小於旋轉速度就直接設定(肉眼看不出來)，反之測試左轉還是右轉會縮小夾角，並據此設定turnRLflag
 			if(angle<turnSpeed){
-				fDir[2]=savedZvalue;
+				fDir[2]=playerFDir[2];
 				actor_c.SetDirection(fDir,playerUDir);
+				turnRLflag=-1;
 			}else{
 				actor_c.TurnRight(5.0f);
 
 				actor_c.GetDirection(playerFDir,NULL);
-				playerFDir[2]=0.0f;
-				if(getAngle(fDir,playerFDir)<angle){
+
+				if(getAngle(fDir,playerFDir,false)<angle){
 					turnRLflag=0;
 				}else{
 					turnRLflag=1;
@@ -530,7 +701,11 @@ public:
 
 			return true;
 		}else{
-			return false;
+			if(curPoseID_c==dieID_c){
+				return true;
+			}else{
+				return false;
+			}
 		}
 	}
 
@@ -538,8 +713,15 @@ public:
 		return &actor_c;
 	}
 
+	CHARACTERid getPlayerID(){
+		return actorID_c;
+	}
+
 	//做動作，由GameAI呼叫
-	void doActions(int skip){
+	void doActions(int skip,int *damageToPlayer,CHARACTERid *enemyID){
+			
+		beHit(damageToPlayer,enemyID);
+		
 		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)){
 			
 			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
@@ -567,7 +749,6 @@ public:
 
 			//播完ONCE動作就看移動鍵有否被按著決定idle or run
 			if (playOver == FALSE && curPoseID_c != dieID_c){
-				
 				if(controller_c->getMoveDirectionFlag()!=-1){
 					curPoseID_c = runID_c;
 				}else{
@@ -601,29 +782,53 @@ private:
 	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c,runID_c,atk1ID_c,atk2ID_c,atk3ID_c,atk4ID_c,Hatk1ID_c,Hatk2ID_c,Hatk3ID_c,UatkID_c,guardID_c;
 	CHARACTERid actorID_c;
 	
-	int turnRLflag;
+	
 	float targetFdir[3];
 	float turnSpeed;
+	int turnRLflag;
+	int timeCounter;
 	FnCharacter actor_c;
 	Controller*controller_c;
-	int timeCounter;
 	int walkFlag;//有無成功前進
+	float walkSpeed;
+	int HP;
 
-	//夾角計算器
-	float getAngle(float* fDir0,float*fDir1){
-	
-		float angle,cross,lengthA,lengthB;
-
-		cross=fDir0[0]*fDir1[0]+fDir0[1]*fDir1[1]+fDir0[2]*fDir1[2];
-		lengthA=sqrt(pow(fDir0[0],2)+pow(fDir0[1],2)+pow(fDir0[2],2));
-		lengthB=sqrt(pow(fDir1[0],2)+pow(fDir1[1],2)+pow(fDir1[2],2));
+	//player被命中判定
+	void beHit(int* damage,CHARACTERid* enemyID){
+		bool someoneFirstHit=false;
+		float resultFdir[3];
+		float fdir[3],udir[3];
 		
-		angle=(float)acos(cross/lengthA/lengthB)*180.0/PI;
+		for(int i=0;i<1;i++){
+			if(damage[i]>0){
+				
+				if(HP>0){
+					HP-=damage[i];
 
-		return angle;
+					if(!someoneFirstHit){
+						getResultFdir(enemyID[i],actorID_c,resultFdir);
+						actor_c.GetDirection(fdir,udir);
+						resultFdir[2]=fdir[2];
+						actor_c.SetDirection(resultFdir,udir);
+					}
+				}
+		
+				if(!someoneFirstHit){
+					if(HP>0){
+						curPoseID_c = hurtID_c;
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					}else if((HP<=0)&&(curPoseID_c != dieID_c)){
+						curPoseID_c = dieID_c;
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					}
+				}
 
+				someoneFirstHit=true;
+			}
+		}
 	}
-
+	
+	
 	//擊中判定
 	void AttackHit(int attack)
 	{
@@ -644,11 +849,32 @@ private:
 			damage=5;
 		}
 
-		for(int y=0;y<2;y++){
+		for(int y=0;y<1;y++){
 			enemyArray[y]->beHit(actorID_c,rangeLength,rangeAngle,damage);
 		}
 	}
 
+	void turn(){
+		float playerFDir[3];
+		float playerUDir[3];
+		
+		if(turnRLflag!=-1){
+			//旋轉
+			turnHelper();
+
+			//轉完後若夾角小於旋轉速度就直接設定，並取消turnRLflag
+			actor_c.GetDirection(playerFDir,playerUDir);
+		
+			if(getAngle(targetFdir,playerFDir,false)<turnSpeed){
+				targetFdir[2]=playerFDir[2];
+				actor_c.SetDirection(targetFdir,playerUDir);
+				turnRLflag=-1;
+				
+				runToIdleHelper();
+			}
+		}
+	}
+	
 	//依據turnRLflag左轉或右轉
 	void turnHelper(){
 		if(turnRLflag==0){
@@ -666,45 +892,21 @@ private:
 		}
 	}
 
-	void turn(){
-		float playerFDir[3];
-		float playerUDir[3];
-		float savedZvalue;
-		
-		if(turnRLflag!=-1){
-			//旋轉
-			turnHelper();
-
-			//轉完後若夾角小於旋轉速度就直接設定，並取消turnRLflag
-			actor_c.GetDirection(playerFDir,playerUDir);
-			savedZvalue=playerFDir[2];
-			playerFDir[2]=0.0f;
-		
-			if(getAngle(targetFdir,playerFDir)<turnSpeed){
-				targetFdir[2]=savedZvalue;
-				actor_c.SetDirection(targetFdir,playerUDir);
-				turnRLflag=-1;
-				
-				runToIdleHelper();
-			}
-		}
-	}
-
 	//前進
 	void run(){
 		if((controller_c->getMoveDirectionFlag()!=-1)&&(turnRLflag==-1)){
 			
 			bool continueFlag;
 			//判斷是否撞到敵人
-			 for(int y=0;y<2;y++){
-				continueFlag=testIFforward(actorID_c,enemyArray[y]->getCid());
+			 for(int y=0;y<1;y++){
+				continueFlag=testIFforward(actorID_c,enemyArray[y]->getCid(),50.0f);
 				if(!continueFlag){
 					break;
 				}
 			 }
 
 			if(continueFlag){
-				walkFlag=actor_c.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
+				walkFlag=actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
 			}
 		}
 	}
@@ -712,7 +914,7 @@ private:
 
 class Camera{
 	public:
-		Camera(Player*player_input,Controller*controller_input,float radius,float height,float cameraSpeedH_input,float cameraSpeedV_input){
+		Camera(Player*player_input,Controller*controller_input,float radius,float height,float cameraSpeedH_input,float cameraSpeedV_input,float cameraSpeedD_input){
 			float fDir[3],uDir[3];
 			
 			//攝影機初始化
@@ -739,6 +941,7 @@ class Camera{
 			//camera turning speed for vertical or horizontal
 			cameraSpeedH=cameraSpeedH_input;
 			cameraSpeedV=cameraSpeedV_input;
+			cameraSpeedD=cameraSpeedD_input;
 			
 			constHeight_c=height;
 			constRadius_c=radius; 
@@ -755,10 +958,13 @@ class Camera{
 			bug5=constHeight_c;
 			bug6=constSide_c;
 
+			controlDistanceFlag=false;
+
 		}
 
 		//GameAI call this
 		void doActions(){
+
 			//camera turn vertical or horizontal or both
 			turn();
 			//camera move with player and minus distance to player if needed
@@ -770,6 +976,27 @@ class Camera{
 			bug3=side_c;
 		}
 		
+
+		void setCameraSpeedH(float input){
+			cameraSpeedH=input;
+		}
+
+		void setCameraSpeedV(float input){
+			cameraSpeedV=input;
+		}
+
+		void resetSavedMoveDirectionFlag(){
+			savedMoveDirectionFlag=-1;
+		}
+
+		float getCameraSpeedH(){
+			return cameraSpeedH;
+		}
+
+		float getCameraSpeedV(){
+			return cameraSpeedV;
+		}
+
 		//依據camera現在方向判斷player應轉向哪邊
 		void getTurningTargetDir(){
 			float savedfDir[3];
@@ -808,28 +1035,11 @@ class Camera{
 				cp_c.SetDirection(savedfDir,saveduDir);
 				
 				//丟給player設定轉向
-				fDir[2]=0.0f;
 				if(player_c->turnSetting(fDir)){
 					savedMoveDirectionFlag=localflag;
 				}
 
 			}
-		}
-
-		void setCameraSpeedH(float input){
-			cameraSpeedH=input;
-		}
-
-		void setCameraSpeedV(float input){
-			cameraSpeedV=input;
-		}
-
-		float getCameraSpeedH(){
-			return cameraSpeedH;
-		}
-
-		float getCameraSpeedV(){
-			return cameraSpeedV;
 		}
 			
 	private:
@@ -848,7 +1058,10 @@ class Camera{
 		int savedMoveDirectionFlag;
 		float cameraSpeedH;
 		float cameraSpeedV;
+		float cameraSpeedD;
 		float upLimit;
+		float targetCameraRadius;
+		bool controlDistanceFlag;
 
 		//camera水平轉向
 		void turnHelperH(){
@@ -928,9 +1141,13 @@ class Camera{
 					craFdir[2]=actrFdir[2];
 					actrLocal->SetDirection(craFdir,actrUdir);
 
-					pushCamera(radius_c,height_c);
+					float savedRadius=radius_c;
+					float savedHeight=height_c;
 					
-					//若camera發生碰撞則持續依儲存之比值減少斜邊長直到未碰撞
+					//令人物移動但camera no turning時camera會跟著移動
+					pushCamera(radius_c,height_c);
+
+					//若camera發生碰撞則持續依儲存之比值減少斜邊長直到未碰撞，但這只是計算目標縮放值未實際縮放
 					if(testHit()<=0){
 						while(testHit()<=0){
 
@@ -939,6 +1156,8 @@ class Camera{
 							
 							pushCamera(radius_c,height_c);
 						}
+						targetCameraRadius=radius_c;
+						controlDistanceFlag=true;
 					}else{
 						while((testHit()>0)&&(!innerFlag)){
 							localRaduis=radius_c;
@@ -953,15 +1172,51 @@ class Camera{
 								innerFlag=true;
 							}
 							pushCamera(radius_c,height_c);
-						}	
+						}
+						targetCameraRadius=radius_c;
+						controlDistanceFlag=true;
 					}
 					//反之若未發生碰撞則要持續增加camera斜邊長直到再度發生碰撞或等於原始斜邊長為止
+
+					radius_c=savedRadius;
+					height_c=savedHeight;
+					pushCamera(radius_c,height_c);
+					//把測完縮放目標的camera歸位
 
 					actrLocal->SetDirection(actrFdir,actrUdir);
 
 					//init WalkFlag 這樣才不會player沒走路且camera沒在旋轉也一直push camera
 					player_c->setWalkFlag();
 				
+				}
+
+				//實際縮放camera距離
+				if(controlDistanceFlag){
+						actrLocal->GetDirection(actrFdir,actrUdir);
+						cp_c.GetDirection(craFdir,NULL);
+						craFdir[2]=actrFdir[2];
+						actrLocal->SetDirection(craFdir,actrUdir);
+
+						if(targetCameraRadius>radius_c){
+							radius_c+=cameraSpeedD;
+							if(radius_c>=targetCameraRadius){
+								radius_c=targetCameraRadius;
+								controlDistanceFlag=false;
+							}
+						}else if(targetCameraRadius<radius_c){
+							radius_c-=cameraSpeedD;
+							if(radius_c<=targetCameraRadius){
+								radius_c=targetCameraRadius;
+								controlDistanceFlag=false;
+							}
+						}else if(targetCameraRadius==radius_c){
+							controlDistanceFlag=false;
+						}
+						height_c=radius_c*savedProportion_c;
+
+						pushCamera(radius_c,height_c);
+
+						actrLocal->SetDirection(actrFdir,actrUdir);
 				}
 		}
 
@@ -1114,20 +1369,19 @@ void FyMain(int argc, char **argv)
 
    //init managers
    controller=new Controller();
-   player=new Player(controller,pos,fDir,uDir,15.0f);
-   camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f);
+   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,10);
+   camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
     
    fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
-   for(int y=0;y<2;y++){
+   for(int y=0;y<1;y++){
 	   pos[0]+=150.0f;
 	   if(y==0){
-	     enemyArray[y]=new enemy("Donzo2",pos,fDir,uDir);
-	   }else{
-		 enemyArray[y]=new enemy("Robber02",pos,fDir,uDir);
-	   }
+	     enemyArray[y]=new enemy("Donzo2",pos,fDir,uDir,15.0f,5.0f,75.0f,10,y);
+	   }/*else{
+		 enemyArray[y]=new enemy("Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,5,y);
+	   }*/
+	   enemyID[y]=enemyArray[y]->getCid();
    }
-   
-  
 
    // setup a point light
    FnLight lgt;
@@ -1178,14 +1432,28 @@ void FyMain(int argc, char **argv)
  --------------------------------------------------------------*/
 void GameAI(int skip)
 {
+	int damageToPlayer[2];
+
 	controller->setFlags();
 
+	//get player turning target dir by camera dir if needed
 	camera->getTurningTargetDir();
 
-	player->doActions(skip);
+	for(int y=0;y<1;y++){
+		damageToPlayer[y]=enemyArray[y]->ifHitPlayer();
+		if(damageToPlayer[y]>0){
+			camera->resetSavedMoveDirectionFlag();
+		}
+	}
+
+	player->doActions(skip,damageToPlayer,enemyID);
 	camera->doActions();
 
-	for(int y=0;y<2;y++){
+	int playerHP=player->getPlayerHP();
+	CHARACTERid playerID=player->getPlayerID();
+
+	for(int y=0;y<1;y++){
+		enemyArray[y]->turnSetting(playerID,playerHP);
 		enemyArray[y]->doActions(skip);
 	}
 }
