@@ -20,6 +20,10 @@ float bug3=-2.0f;
 float bug4=-2.0f;
 float bug5=-2.0f;
 float bug6=-2.0f;
+int bug7=-2;
+int bug8=-2;
+float bug9=-2.0f;
+float bug10=-2.0f;
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
@@ -30,9 +34,14 @@ FnScene scene;
 FnObject terrain;
 BOOL4 beOK;
 
+float GetDistance(float*pos1,float*pos2){
+	return (sqrt(pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2) +pow(pos1[2] - pos2[2], 2)));
+}
+
+
 
 //取得兩角色之間距離
-float GetDistance(int a1, int a2) {
+float GetDistanceWithCharacterID(int a1, int a2) {
 	FnCharacter actorLocal;
 	actorLocal.ID(a1);
 	FnCharacter enemy;
@@ -42,11 +51,7 @@ float GetDistance(int a1, int a2) {
 	actorLocal.GetPosition(actor_pos);
 	enemy.GetPosition(enemy_pos);
 
-	//calculate the distance
-	distance = sqrt(pow(actor_pos[0] - enemy_pos[0], 2) + pow(actor_pos[1] - enemy_pos[1], 2) +
-		pow(actor_pos[2] - enemy_pos[2], 2));
-
-	return distance;
+	return GetDistance(actor_pos,enemy_pos);
 
 }
 
@@ -68,7 +73,8 @@ void getResultFdir(int a1, int a2, float *ary) {
 	ary[2]=resultFdir[2];
 }
 
-//夾角計算器
+//夾角計算器，拿來做攻擊判定且兩角色連成一線有時會吐出無效null值(原因未知)，直接在此function內用if else排除無效值又會令player依camera方向
+//180度旋轉出錯(原因未知)，所以單獨在有攻擊判定的地方做null值的排除，總之是排除了bug
 float getAngle(float* fDir0,float*fDir1,bool Zflag){
 	
 		float angle,cross,lengthA,lengthB;
@@ -82,11 +88,10 @@ float getAngle(float* fDir0,float*fDir1,bool Zflag){
 			lengthA=sqrt(pow(fDir0[0],2)+pow(fDir0[1],2));
 			lengthB=sqrt(pow(fDir1[0],2)+pow(fDir1[1],2));
 		}
-		
+
 		angle=(float)acos(cross/lengthA/lengthB)*180.0/PI;
 
 		return angle;
-
 }
 
 //取得兩角色之間夾角
@@ -106,19 +111,19 @@ float getAngleWithCharacterID(int a1, int a2,bool Zflag) {
 	
 }
 
-//測試是否能前進
+//測試是否能前進， 包括碰牆與碰人，碰人可設定距離
 bool testIFforward(int a1, int a2,float distanceLimit){
 	FnCharacter actorLocal;
 	bool FlagLocal;
 	int walkFlag;
-	int previousDistance=GetDistance(a1, a2);
+	int previousDistance=GetDistanceWithCharacterID(a1, a2);
 
 	actorLocal.ID(a1);
 	walkFlag=actorLocal.MoveForward(10.0f, TRUE, FALSE, FALSE, FALSE);
 
 	if(walkFlag==WALK){
 		if(previousDistance<=distanceLimit){
-			if(GetDistance(a1, a2)<=previousDistance){
+			if(GetDistanceWithCharacterID(a1, a2)<=previousDistance){
 				actorLocal.MoveForward(-10.0f, TRUE, FALSE, FALSE, FALSE);
 				return false;
 			}else{
@@ -131,7 +136,7 @@ bool testIFforward(int a1, int a2,float distanceLimit){
 		}
 	}
 	else{
-		return true;
+		return false;
 	}
 }
 
@@ -351,6 +356,7 @@ public:
 			hurtID_c = actor_c.GetBodyAction(NULL, "Damage2");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
 			runID_c = actor_c.GetBodyAction(NULL, "Run");
+			attackL2ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
 		}
 		HP=HP_input;
 
@@ -369,6 +375,7 @@ public:
 		toPlayerRange=toPlayerRange_input;
 		hitFlag=false;
 		damageToPlayer=-1;
+		blockCounter=0;
 
 		savedTurnTarget[0]=-9999.0;
 		savedTurnTarget[1]=-9999.0;
@@ -376,9 +383,8 @@ public:
 	} 
 
 	//GameAI call this
-	void doActions(int skip){
-
-		//攻擊判定
+	void doActions(int skip,CHARACTERid* enemyID_c){
+		//攻擊判定(45)與再次攻擊(-1)倒數
 		if(timeCounter!=-1){
 				if(timeCounter==45){
 					if(curPoseID_c==attackL2ID_c){
@@ -387,16 +393,24 @@ public:
 				}
 				timeCounter--;
 		}
+
+		if(index==0){
+			bug7=timeCounter;
+			bug8=playerHP_c;
+		}
 		
 		if((curPoseID_c==idleID_c)||(curPoseID_c==runID_c)){
 			
 			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
 			
-			//轉向跑步與攻擊
-			if(playerHP_c>0){
+			//當blockCounter未被設定為>0則進行跟蹤轉向、跑向Player與攻擊
+			if(blockCounter<=0){
 				turn();
-				runAndAttack();
+				runAndAttack(enemyID_c);
+			}else{
+				findRoute(enemyID_c);
 			}
+			//反之尋路
 
 		}else{
 			BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
@@ -407,18 +421,29 @@ public:
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
 			}
 		}
+		
 	}
 
 	//判斷是否被擊中並設定對應動作
 	void beHit(CHARACTERid attackerID,float rangeLength,float rangeAngle,int damage){
 		float lengthLocal,angleLocal,resultFdir[3];
 		float fdir[3],udir[3];
+		float testAngle;
 
-	    angleLocal=getAngleWithCharacterID(attackerID,actorID_c,true);
-	    lengthLocal=GetDistance(attackerID,actorID_c);
+	    testAngle=getAngleWithCharacterID(attackerID,actorID_c,true);
+	    lengthLocal=GetDistanceWithCharacterID(attackerID,actorID_c);
+
+		if(testAngle>0.0f){
+			angleLocal=testAngle;
+		}else{
+			angleLocal=0.0f;
+		}
 	
 		if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
+
+			//被擊中就重置攻擊動作counter
 			timeCounter=-1;
+
 			if(HP>0){
 				HP-=damage;
 				getResultFdir(attackerID,actorID_c,resultFdir);
@@ -441,12 +466,12 @@ public:
 		return actorID_c;
 	}
 
-	//轉向設定
+	//跟蹤player轉向設定
 	void turnSetting(CHARACTERid playerID,int playerHP){
 		playerID_c=playerID;
 		playerHP_c=playerHP;
 
-		if((playerHP_c>0)&&(curPoseID_c!=dieID_c)){
+		if(curPoseID_c!=dieID_c){
 			float angle;
 			
 			angle=getAngleWithCharacterID(actorID_c,playerID,false);
@@ -500,40 +525,142 @@ private:
 	float toPlayerRange;
 	bool hitFlag;
 	int damageToPlayer;
+	int blockCounter;
+	bool blockTurning;
 
 	//攻擊命中傷害判定
-	void attackHit(int index){
+	void attackHit(int number){
 		float angleLocal;
 		float lengthLocal;
+		float testAngle;
 
-		angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
-		lengthLocal=GetDistance(actorID_c,playerID_c);
+		testAngle=getAngleWithCharacterID(actorID_c,playerID_c,true);
+		lengthLocal=GetDistanceWithCharacterID(actorID_c,playerID_c);
+
+		if(testAngle>0.0f){
+			angleLocal=testAngle;
+		}else{
+			angleLocal=0.0f;
+		}
 
 		if(index==0){
+			bug9=angleLocal;
+			bug10=lengthLocal;
+		}
+
+		if(number==0){
 			if((angleLocal<=60.0f)&&(lengthLocal<=135.0f)){
 				hitFlag=true;
-				damageToPlayer=4;
+				if(enemy_category==0){
+					damageToPlayer=4;
+				}else if(enemy_category==1){
+					damageToPlayer=2;
+				}
 			}
 		}
 	}
 
-	void runAndAttack(){
+	void findRoute(CHARACTERid*enemyID_c){
+		bool continueFlag=true;
+
+		//如果是前一次發生撞人或牆事件則旋轉，之後測試能否前進，若可則進入前進階段
+		if(blockTurning){
+			if(curPoseID_c!=runID_c){
+					curPoseID_c=runID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+			}
+
+			actor_c.TurnRight(turnSpeed);
+
+			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			if(continueFlag){
+				for(int y=0;y<2;y++){
+					if(y!=index){
+						continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+						if(!continueFlag){
+							break;
+						}
+					}
+				}
+			}
+
+			if(continueFlag){
+				blockTurning=false;
+			}
+		}else{
+			if(curPoseID_c!=runID_c){
+					curPoseID_c=runID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+			}
+
+			actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
+			blockCounter--;
+
+			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			if(continueFlag){
+				for(int y=0;y<2;y++){
+					if(y!=index){
+						continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+						if(!continueFlag){
+							break;
+						}
+					}
+				}
+			}
+
+			if(!continueFlag){
+				blockCounter=20;
+				blockTurning=true;
+			}
+		}
+		//尋路的前進階段，只有這個狀態下才會減少blockCounter，若過程再度發生碰撞則重新進入旋轉階段並重置blockCounter
+	}
+
+	void runAndAttack(CHARACTERid*enemyID_c){
 		if(turnRLflag==-1){
-				if(GetDistance(actorID_c,playerID_c)>toPlayerRange){
+			bool continueFlag=true;
+			//判斷是否撞到人或牆
+
+			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			if(continueFlag){
+				for(int y=0;y<2;y++){
+					if(y!=index){
+						continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+						if(!continueFlag){
+							break;
+						}
+					}
+				}
+			}
+
+			if(continueFlag){
+
+				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>toPlayerRange){
 					if(curPoseID_c!=runID_c){
 						curPoseID_c=runID_c;
 						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					}
-					int walkFlag=actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
+					actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
 					//大於一定range就跑向player
 				}else{
+						//timeCounter在doActions中被倒數到-1則可再度進行攻擊，且palyer要活著
 						if((timeCounter<0)&&(playerHP_c>0)){
 							curPoseID_c = attackL2ID_c;
 							actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 							timeCounter=60;
+						}else{
+							if(curPoseID_c!=idleID_c){
+								curPoseID_c = idleID_c;
+								actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+							}
 						}
+						//否則閒置
 				}	
-				//否則就每隔段時間發動攻擊
+			}else{
+				blockCounter=20;
+				blockTurning=true;
+				//若無法前進則進入尋路的旋轉階段
+			}
 		}
 	}
 	
@@ -647,7 +774,7 @@ public:
 	//設定player攻擊動作
 	void setAttackingAction(int index){
 		
-			if ((curPoseID_c != atk1ID_c)&&(curPoseID_c != atk2ID_c)&&(curPoseID_c != atk3ID_c)&&(curPoseID_c != hurtID_c)){
+			if ((!ifAttacking())&&(curPoseID_c != hurtID_c)&&(curPoseID_c != dieID_c)){
 				if(index==0){
 					curPoseID_c = atk1ID_c;
 					timeCounter=0;
@@ -701,12 +828,10 @@ public:
 
 			return true;
 		}else{
-			if(curPoseID_c==dieID_c){
-				return true;
-			}else{
-				return false;
-			}
+			return false;
 		}
+		//回傳true表示在curPos=run時成功進行了一次turnSetting，反之表示正在進行其他動作不能進行turnSetting
+		//回傳true，camera內才更新移動鍵記錄
 	}
 
 	FnCharacter*getActor(){
@@ -718,17 +843,17 @@ public:
 	}
 
 	//做動作，由GameAI呼叫
-	void doActions(int skip,int *damageToPlayer,CHARACTERid *enemyID){
-			
-		beHit(damageToPlayer,enemyID);
+	void doActions(int skip,int *damageToPlayer,CHARACTERid *enemyID_c){
 		
+		beHit(damageToPlayer,enemyID_c);
+
 		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)){
 			
 			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
 		
 			if(curPoseID_c==runID_c){
 				turn();
-				run();
+				run(enemyID_c);
 			}
 		}else{
 			BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
@@ -748,7 +873,7 @@ public:
 			}
 
 			//播完ONCE動作就看移動鍵有否被按著決定idle or run
-			if (playOver == FALSE && curPoseID_c != dieID_c){
+			if ((playOver == FALSE)&&(curPoseID_c != dieID_c)){
 				if(controller_c->getMoveDirectionFlag()!=-1){
 					curPoseID_c = runID_c;
 				}else{
@@ -757,7 +882,6 @@ public:
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c,5.0f);
 			}
 		}
-		
 	}
 
 	//清除前進成功flag
@@ -794,38 +918,38 @@ private:
 	int HP;
 
 	//player被命中判定
-	void beHit(int* damage,CHARACTERid* enemyID){
+	void beHit(int* damage,CHARACTERid* enemyID_c){
 		bool someoneFirstHit=false;
 		float resultFdir[3];
 		float fdir[3],udir[3];
 		
-		for(int i=0;i<1;i++){
+		for(int i=0;i<2;i++){
 			if(damage[i]>0){
 				
 				if(HP>0){
 					HP-=damage[i];
 
 					if(!someoneFirstHit){
-						getResultFdir(enemyID[i],actorID_c,resultFdir);
+						getResultFdir(enemyID_c[i],actorID_c,resultFdir);
 						actor_c.GetDirection(fdir,udir);
 						resultFdir[2]=fdir[2];
 						actor_c.SetDirection(resultFdir,udir);
+						someoneFirstHit=true;
 					}
 				}
-		
-				if(!someoneFirstHit){
-					if(HP>0){
-						curPoseID_c = hurtID_c;
-						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-					}else if((HP<=0)&&(curPoseID_c != dieID_c)){
-						curPoseID_c = dieID_c;
-						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-					}
-				}
-
-				someoneFirstHit=true;
 			}
 		}
+
+		if(someoneFirstHit){
+				if(HP>0){
+					curPoseID_c = hurtID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
+					curPoseID_c = dieID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+			 }
+		}
+
 	}
 	
 	
@@ -849,7 +973,7 @@ private:
 			damage=5;
 		}
 
-		for(int y=0;y<1;y++){
+		for(int y=0;y<2;y++){
 			enemyArray[y]->beHit(actorID_c,rangeLength,rangeAngle,damage);
 		}
 	}
@@ -886,20 +1010,20 @@ private:
 
 	//當沒有跑步或轉向時才設idle Action
 	void runToIdleHelper(){
-		if (!FyCheckHotKeyStatus(FY_W)&&!FyCheckHotKeyStatus(FY_A)&&!FyCheckHotKeyStatus(FY_S)&&!FyCheckHotKeyStatus(FY_D)&&(turnRLflag==-1)) {
+		if (!FyCheckHotKeyStatus(FY_W)&&!FyCheckHotKeyStatus(FY_A)&&!FyCheckHotKeyStatus(FY_S)&&!FyCheckHotKeyStatus(FY_D)&&(turnRLflag==-1)&&(curPoseID_c!=dieID_c)) {
 				curPoseID_c = idleID_c;
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 		}
 	}
 
 	//前進
-	void run(){
+	void run(CHARACTERid*enemyID_c){
 		if((controller_c->getMoveDirectionFlag()!=-1)&&(turnRLflag==-1)){
 			
-			bool continueFlag;
+			bool continueFlag=true;
 			//判斷是否撞到敵人
-			 for(int y=0;y<1;y++){
-				continueFlag=testIFforward(actorID_c,enemyArray[y]->getCid(),50.0f);
+			 for(int y=0;y<2;y++){
+				continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
 				if(!continueFlag){
 					break;
 				}
@@ -963,12 +1087,14 @@ class Camera{
 		}
 
 		//GameAI call this
-		void doActions(){
-
+		void doActions(){	
+			
 			//camera turn vertical or horizontal or both
 			turn();
-			//camera move with player and minus distance to player if needed
-			moveAndMinusDistanceToPlayer();
+			//camera move with player and test minus distance
+			moveAndTest();
+			//minus distance to player if needed
+			minusDistanceToPlayer();
 
 			//debuger
 			bug=radius_c;
@@ -999,40 +1125,42 @@ class Camera{
 
 		//依據camera現在方向判斷player應轉向哪邊
 		void getTurningTargetDir(){
-			float savedfDir[3];
-			float saveduDir[3];
 			float fDir[3];
+			float uDir[3];
 			int localflag;
+
+			OBJECTid objID = scene.CreateObject(OBJECT);
+			FnObject obj;
+			obj.ID(objID);
+			//用obj代替camera以免因float誤差無法令camera完全歸位，而使數秒後camera開始偏移
 			
 			localflag=controller_c->getMoveDirectionFlag();
 			
-			//如果這次輸入的方向鍵和上次不一樣才進行轉向設定
+			//如果這次輸入的方向鍵和上次不一樣才進行轉向設定,否則跑步會一直抖
 			if((savedMoveDirectionFlag!=localflag)&&(localflag!=-1)){
 			
-				//計算人物應追蹤的攝影機方向，轉完記得將攝影機方向設回去
-				cp_c.GetDirection(savedfDir,saveduDir);
-				cp_c.GetDirection(fDir,NULL);
+				//計算人物應追蹤的攝影機方向
+				cp_c.GetDirection(fDir,uDir);
 				fDir[2]=0.0f;
-				cp_c.SetDirection(fDir,saveduDir);
+				obj.SetDirection(fDir,uDir);
 
 				if(localflag==1){
-					cp_c.TurnRight(180.0f);
+					obj.TurnRight(180.0f);
 				}else if(localflag==2){
-					cp_c.TurnRight(-90.0f);
+					obj.TurnRight(-90.0f);
 				}else if(localflag==3){
-					cp_c.TurnRight(90.0f);
+					obj.TurnRight(90.0f);
 				}else if(localflag==4){
-					cp_c.TurnRight(-45.0f);
+					obj.TurnRight(-45.0f);
 				}else if(localflag==5){
-					cp_c.TurnRight(-135.0f);
+					obj.TurnRight(-135.0f);
 				}else if(localflag==6){
-					cp_c.TurnRight(45.0f);
+					obj.TurnRight(45.0f);
 				}else if(localflag==7){
-					cp_c.TurnRight(135.0f);
+					obj.TurnRight(135.0f);
 				}
 
-				cp_c.GetDirection(fDir,NULL);
-				cp_c.SetDirection(savedfDir,saveduDir);
+				obj.GetDirection(fDir,NULL);
 				
 				//丟給player設定轉向
 				if(player_c->turnSetting(fDir)){
@@ -1124,8 +1252,8 @@ class Camera{
 		
 		}
 
-		//let camera go with player and minus distance t o player
-		void moveAndMinusDistanceToPlayer(){
+		//let camera go with player and test minus distance to player
+		void moveAndTest(){
 				FnCharacter* actrLocal=player_c->getActor();
 				float actrFdir[3],actrUdir[3];
 				float craFdir[3];
@@ -1134,7 +1262,7 @@ class Camera{
 				float localRaduis;
 				float localHeight;
 
-				if((controller_c->getCameraDirectionFlagH()!=-1)||(controller_c->getCameraDirectionFlagV()!=-1)||(player_c->getWalkFlag()== WALK)){
+				if((controller_c->getCameraDirectionFlagH()!=-1)||(controller_c->getCameraDirectionFlagV()!=-1)||(player_c->getWalkFlag()==WALK)){
 
 					actrLocal->GetDirection(actrFdir,actrUdir);
 					cp_c.GetDirection(craFdir,NULL);
@@ -1178,9 +1306,7 @@ class Camera{
 					}
 					//反之若未發生碰撞則要持續增加camera斜邊長直到再度發生碰撞或等於原始斜邊長為止
 
-					radius_c=savedRadius;
-					height_c=savedHeight;
-					pushCamera(radius_c,height_c);
+					pushCamera(savedRadius,savedHeight);
 					//把測完縮放目標的camera歸位
 
 					actrLocal->SetDirection(actrFdir,actrUdir);
@@ -1189,34 +1315,43 @@ class Camera{
 					player_c->setWalkFlag();
 				
 				}
+		}
 
-				//實際縮放camera距離
-				if(controlDistanceFlag){
-						actrLocal->GetDirection(actrFdir,actrUdir);
-						cp_c.GetDirection(craFdir,NULL);
-						craFdir[2]=actrFdir[2];
-						actrLocal->SetDirection(craFdir,actrUdir);
+		//已知逐格縮放攝影機在Player向下移動和左右橫移攝影機同時發生時有偶發性攝影機瞬移至反方向的問題，可能
+		//跟player減少跟camera的距離使縮放出錯有關?待確認原因並修復
+		void minusDistanceToPlayer(){
+			//實際縮放camera距離
 
-						if(targetCameraRadius>radius_c){
-							radius_c+=cameraSpeedD;
-							if(radius_c>=targetCameraRadius){
-								radius_c=targetCameraRadius;
-								controlDistanceFlag=false;
-							}
-						}else if(targetCameraRadius<radius_c){
-							radius_c-=cameraSpeedD;
-							if(radius_c<=targetCameraRadius){
-								radius_c=targetCameraRadius;
-								controlDistanceFlag=false;
-							}
-						}else if(targetCameraRadius==radius_c){
+			FnCharacter* actrLocal=player_c->getActor();
+			float actrFdir[3],actrUdir[3];
+			float craFdir[3];
+
+			if(controlDistanceFlag){
+					actrLocal->GetDirection(actrFdir,actrUdir);
+					cp_c.GetDirection(craFdir,NULL);
+					craFdir[2]=actrFdir[2];
+					actrLocal->SetDirection(craFdir,actrUdir);
+
+					if(targetCameraRadius>radius_c){
+						radius_c+=cameraSpeedD;
+						if(radius_c>=targetCameraRadius){
+							radius_c=targetCameraRadius;
 							controlDistanceFlag=false;
 						}
-						height_c=radius_c*savedProportion_c;
+					}else if(targetCameraRadius<radius_c){
+						radius_c-=cameraSpeedD;
+						if(radius_c<=targetCameraRadius){
+							radius_c=targetCameraRadius;
+							controlDistanceFlag=false;
+						}
+					}else if(targetCameraRadius==radius_c){
+						controlDistanceFlag=false;
+					}
+					height_c=radius_c*savedProportion_c;
 
-						pushCamera(radius_c,height_c);
+					pushCamera(radius_c,height_c);
 
-						actrLocal->SetDirection(actrFdir,actrUdir);
+					actrLocal->SetDirection(actrFdir,actrUdir);
 				}
 		}
 
@@ -1369,17 +1504,17 @@ void FyMain(int argc, char **argv)
 
    //init managers
    controller=new Controller();
-   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,10);
+   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
     
    fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
-   for(int y=0;y<1;y++){
+   for(int y=0;y<2;y++){
 	   pos[0]+=150.0f;
 	   if(y==0){
 	     enemyArray[y]=new enemy("Donzo2",pos,fDir,uDir,15.0f,5.0f,75.0f,10,y);
-	   }/*else{
+	   }else{
 		 enemyArray[y]=new enemy("Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,5,y);
-	   }*/
+	   }
 	   enemyID[y]=enemyArray[y]->getCid();
    }
 
@@ -1434,27 +1569,31 @@ void GameAI(int skip)
 {
 	int damageToPlayer[2];
 
+	//設定按鍵旗標
 	controller->setFlags();
 
 	//get player turning target dir by camera dir if needed
 	camera->getTurningTargetDir();
 
-	for(int y=0;y<1;y++){
+	//檢查enemies是否命中player
+	for(int y=0;y<2;y++){
 		damageToPlayer[y]=enemyArray[y]->ifHitPlayer();
 		if(damageToPlayer[y]>0){
 			camera->resetSavedMoveDirectionFlag();
 		}
 	}
 
+	//player做動作時順便接收enemies對他造成的damage
 	player->doActions(skip,damageToPlayer,enemyID);
 	camera->doActions();
 
 	int playerHP=player->getPlayerHP();
 	CHARACTERid playerID=player->getPlayerID();
 
-	for(int y=0;y<1;y++){
+	//enemies接收player的ID和HP做攻擊判定用
+	for(int y=0;y<2;y++){
 		enemyArray[y]->turnSetting(playerID,playerHP);
-		enemyArray[y]->doActions(skip);
+		enemyArray[y]->doActions(skip,enemyID);
 	}
 }
 
@@ -1503,7 +1642,8 @@ void RenderIt(int skip)
    text.Begin(vID);
    text.Write(string, 20, 20, 255, 0, 0);
 
-   char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256];
+   char d9DirS[256],d10DirS[256];
+   char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256],d7DirS[256],d8DirS[256];
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
    sprintf(uDirS, "up: %8.3f %8.3f %8.3f", uDir[0], uDir[1], uDir[2]);
@@ -1513,6 +1653,10 @@ void RenderIt(int skip)
    sprintf(d4DirS, "constRadius_c: %8.3f ", bug4);
    sprintf(d5DirS, "constHeight_c: %8.3f ", bug5);
    sprintf(d6DirS, "constSide_c: %8.3f ", bug6);
+   sprintf(d7DirS, "DonzoAttackTimeCounter: %d ", bug7);
+   sprintf(d8DirS, "playerHP_c: %d ", bug8);
+   sprintf(d9DirS, "DonzoAttackAngle: %8.3f ", bug9);
+   sprintf(d10DirS, "DonzoAttackRange: %8.3f ", bug10);
 
    text.Write(posS, 20, 35, 255, 255, 0);
    text.Write(fDirS, 20, 50, 255, 255, 0);
@@ -1523,6 +1667,10 @@ void RenderIt(int skip)
    text.Write(d4DirS, 20, 125, 255, 255, 0);
    text.Write(d5DirS, 20, 140, 255, 255, 0);
    text.Write(d6DirS, 20, 155, 255, 255, 0);
+   text.Write(d7DirS, 20, 170, 255, 255, 0);
+   text.Write(d8DirS, 20, 185, 255, 255, 0);
+   text.Write(d9DirS, 20, 200, 255, 255, 0);
+   text.Write(d10DirS, 20, 215, 255, 255, 0);
 
    text.End();
 
