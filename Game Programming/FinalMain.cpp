@@ -24,7 +24,6 @@ int bug7=-2;
 int bug8=-2;
 float bug9=-2.0f;
 float bug10=-2.0f;
-float bug11=-2.0f;
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
@@ -975,7 +974,6 @@ private:
 	void turn(){
 		float playerFDir[3];
 		float playerUDir[3];
-		float aaa;
 		
 		if(turnRLflag!=-1){
 			//旋轉
@@ -983,12 +981,8 @@ private:
 
 			//轉完後若夾角小於旋轉速度就直接設定，並取消turnRLflag
 			actor_c.GetDirection(playerFDir,playerUDir);
-
-			aaa=getAngle(targetFdir,playerFDir,false);
-
-			bug11=aaa;
 		
-			if(aaa<=turnSpeed){
+			if(getAngle(targetFdir,playerFDir,false)<=turnSpeed){
 				targetFdir[2]=playerFDir[2];
 				actor_c.SetDirection(targetFdir,playerUDir);
 				turnRLflag=-1;
