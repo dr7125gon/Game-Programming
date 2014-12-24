@@ -1080,10 +1080,16 @@ class Camera{
 		//GameAI call this
 		void doActions(){	
 
-			//檢查攝影機是否發生(疑似)因float overflow導致的180度位移
+			//檢查攝影機是否發生(疑似)因float overflow導致的180度位移，先暫存處理前data
 			float localTestAngle;
 			float testSavedFdir[3],testSavedUdir[3],testSavedPos[3];
 			float testSavedFdirAfter[3],testSavedUdirAfter[3],testSavedPosAfter[3];
+			float height_l=height_c;
+			float radius_l=radius_c; 
+			float side_l=side_c;
+			float savedProportion_l=savedProportion_c;
+			float targetCameraRadius_l=targetCameraRadius;
+			bool controlDistanceFlag_l=controlDistanceFlag;
 
 			cp_c.GetDirection(testSavedFdir,testSavedUdir);
 			cp_c.GetPosition(testSavedPos);
@@ -1107,6 +1113,12 @@ class Camera{
 			if(localTestAngle>=90.0f){
 				cp_c.SetDirection(testSavedFdir,testSavedUdir);
 				cp_c.SetPosition(testSavedPos);
+				height_c=height_l;
+				radius_c=radius_l; 
+				side_c=side_l;
+				savedProportion_c=savedProportion_l;
+				targetCameraRadius=targetCameraRadius_l;
+				controlDistanceFlag=controlDistanceFlag_l;
 				testAngle=localTestAngle;
 			}
 			//float overflow例外處理，直接捨棄camera這一frame的變動，我猜下一frame會因Player的移動使例外不會連續發生
@@ -1186,14 +1198,14 @@ class Camera{
 		float radius_c; 
 		float side_c;
 		float savedProportion_c;
+		float targetCameraRadius;
+		bool controlDistanceFlag;
 		Player*player_c;
 		Controller*controller_c;
 		float cameraSpeedH;
 		float cameraSpeedV;
 		float cameraSpeedD;
 		float upLimit;
-		float targetCameraRadius;
-		bool controlDistanceFlag;
 		float turnLimitValue;
 		float turnTestValue;
 
