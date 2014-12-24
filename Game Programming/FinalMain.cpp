@@ -24,6 +24,7 @@ int bug7=-2;
 int bug8=-2;
 float bug9=-2.0f;
 float bug10=-2.0f;
+float bug11=-2.0f;
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
@@ -34,11 +35,11 @@ FnScene scene;
 FnObject terrain;
 BOOL4 beOK;
 
+float testAngle=-2.0f;//例外偵測
+
 float GetDistance(float*pos1,float*pos2){
 	return (sqrt(pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2) +pow(pos1[2] - pos2[2], 2)));
 }
-
-
 
 //取得兩角色之間距離
 float GetDistanceWithCharacterID(int a1, int a2) {
@@ -73,11 +74,10 @@ void getResultFdir(int a1, int a2, float *ary) {
 	ary[2]=resultFdir[2];
 }
 
-//夾角計算器，拿來做攻擊判定且兩角色連成一線有時會吐出無效null值(原因未知)，直接在此function內用if else排除無效值又會令player依camera方向
-//180度旋轉出錯(原因未知)，所以單獨在有攻擊判定的地方做null值的排除，總之是排除了bug
+//夾角計算器，bug已修正，萬惡的float值運算誤差讓cross值在小數點下n位>1或<-1因此吐出NaN = =
 float getAngle(float* fDir0,float*fDir1,bool Zflag){
 	
-		float angle,cross,lengthA,lengthB;
+		float angle,cross,lengthA,lengthB,toACOS;
 
 		if(Zflag){
 			cross=fDir0[0]*fDir1[0]+fDir0[1]*fDir1[1]+fDir0[2]*fDir1[2];
@@ -89,9 +89,21 @@ float getAngle(float* fDir0,float*fDir1,bool Zflag){
 			lengthB=sqrt(pow(fDir1[0],2)+pow(fDir1[1],2));
 		}
 
-		angle=(float)acos(cross/lengthA/lengthB)*180.0/PI;
+		if((lengthA>0)&&(lengthB>0)){
+		
+			toACOS=(cross/lengthA/lengthB);
+			if(toACOS>1.0f){
+				toACOS=1.0f;
+			}else if(toACOS<-1.0f){
+				toACOS=-1.0f;
+			}
 
-		return angle;
+			angle=(float)acos(toACOS)*180.0/PI;
+			return angle;
+
+		}else{
+			return 0.0f;
+		}
 }
 
 //取得兩角色之間夾角
@@ -421,7 +433,6 @@ public:
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
 			}
 		}
-		
 	}
 
 	//判斷是否被擊中並設定對應動作
@@ -430,14 +441,8 @@ public:
 		float fdir[3],udir[3];
 		float testAngle;
 
-	    testAngle=getAngleWithCharacterID(attackerID,actorID_c,true);
+	    angleLocal=getAngleWithCharacterID(attackerID,actorID_c,true);
 	    lengthLocal=GetDistanceWithCharacterID(attackerID,actorID_c);
-
-		if(testAngle>0.0f){
-			angleLocal=testAngle;
-		}else{
-			angleLocal=0.0f;
-		}
 	
 		if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
 
@@ -534,14 +539,8 @@ private:
 		float lengthLocal;
 		float testAngle;
 
-		testAngle=getAngleWithCharacterID(actorID_c,playerID_c,true);
+		angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
 		lengthLocal=GetDistanceWithCharacterID(actorID_c,playerID_c);
-
-		if(testAngle>0.0f){
-			angleLocal=testAngle;
-		}else{
-			angleLocal=0.0f;
-		}
 
 		if(index==0){
 			bug9=angleLocal;
@@ -790,7 +789,7 @@ public:
 	}
 
 	//轉向設定
-	bool turnSetting(float* fDir){
+	void turnSetting(float* fDir,float turnLimitValue,float turnTsetValue){
 		float playerFDir[3];
 		float playerUDir[3];
 		float angle;
@@ -807,13 +806,12 @@ public:
 
 			angle=getAngle(fDir,playerFDir,false);
 
-			//若小於旋轉速度就直接設定(肉眼看不出來)，反之測試左轉還是右轉會縮小夾角，並據此設定turnRLflag
-			if(angle<turnSpeed){
-				fDir[2]=playerFDir[2];
-				actor_c.SetDirection(fDir,playerUDir);
-				turnRLflag=-1;
-			}else{
-				actor_c.TurnRight(5.0f);
+			//角度差大於閥值就會進行轉向設定並測試左轉還是右轉會縮小夾角，以此設定turnRLflag
+			//由於人物和camera方向的角度不能有任何差值，所以閥值(camera會算好傳過來)必須<camera水平轉向速度，攝影機由鍵盤轉動時
+			//Player就能完全跟上，又還是得有這個limit存在，否則每次抓攝影機角度的float誤差會令turnRLflag持續為真
+			//造成Player不能前進
+			if(angle>turnLimitValue){
+				actor_c.TurnRight(turnTsetValue);
 
 				actor_c.GetDirection(playerFDir,NULL);
 
@@ -823,15 +821,11 @@ public:
 					turnRLflag=1;
 				}
 
-				actor_c.TurnRight(-5.0f);
+				actor_c.TurnRight(-turnTsetValue);
 			}
 
-			return true;
-		}else{
-			return false;
 		}
-		//回傳true表示在curPos=run時成功進行了一次turnSetting，反之表示正在進行其他動作不能進行turnSetting
-		//回傳true，camera內才更新移動鍵記錄
+		//run action時才接受來自camera的轉向設定
 	}
 
 	FnCharacter*getActor(){
@@ -981,6 +975,7 @@ private:
 	void turn(){
 		float playerFDir[3];
 		float playerUDir[3];
+		float aaa;
 		
 		if(turnRLflag!=-1){
 			//旋轉
@@ -988,8 +983,12 @@ private:
 
 			//轉完後若夾角小於旋轉速度就直接設定，並取消turnRLflag
 			actor_c.GetDirection(playerFDir,playerUDir);
+
+			aaa=getAngle(targetFdir,playerFDir,false);
+
+			bug11=aaa;
 		
-			if(getAngle(targetFdir,playerFDir,false)<turnSpeed){
+			if(aaa<=turnSpeed){
 				targetFdir[2]=playerFDir[2];
 				actor_c.SetDirection(targetFdir,playerUDir);
 				turnRLflag=-1;
@@ -1059,13 +1058,13 @@ class Camera{
 			player_c=player_input;
 			controller_c=controller_input;
 
-			//上一次player移動的方向
-			savedMoveDirectionFlag=-1;
-
 			//camera turning speed for vertical or horizontal
 			cameraSpeedH=cameraSpeedH_input;
 			cameraSpeedV=cameraSpeedV_input;
 			cameraSpeedD=cameraSpeedD_input;
+
+			turnLimitValue=0.5*cameraSpeedH;
+			turnTestValue=0.5*turnLimitValue;
 			
 			constHeight_c=height;
 			constRadius_c=radius; 
@@ -1088,7 +1087,15 @@ class Camera{
 
 		//GameAI call this
 		void doActions(){	
-			
+
+			//檢查攝影機是否發生(疑似)因float overflow導致的180度位移
+			float localTestAngle;
+			float testSavedFdir[3],testSavedUdir[3],testSavedPos[3];
+			float testSavedFdirAfter[3],testSavedUdirAfter[3],testSavedPosAfter[3];
+
+			cp_c.GetDirection(testSavedFdir,testSavedUdir);
+			cp_c.GetPosition(testSavedPos);
+
 			//camera turn vertical or horizontal or both
 			turn();
 			//camera move with player and test minus distance
@@ -1100,6 +1107,18 @@ class Camera{
 			bug=radius_c;
 			bug2=height_c;
 			bug3=side_c;
+
+			cp_c.GetDirection(testSavedFdirAfter,testSavedUdirAfter);
+			cp_c.GetPosition(testSavedPosAfter);
+
+			localTestAngle=getAngle(testSavedFdir,testSavedFdirAfter,false);
+			if(localTestAngle>=90.0f){
+				cp_c.SetDirection(testSavedFdir,testSavedUdir);
+				cp_c.SetPosition(testSavedPos);
+				testAngle=localTestAngle;
+			}
+			//float overflow例外處理，直接捨棄camera這一frame的變動，我猜下一frame會因Player的移動使例外不會連續發生
+			//若因此導致程式更嚴重錯誤可能要把這裡test系列的code刪掉
 		}
 		
 
@@ -1109,10 +1128,6 @@ class Camera{
 
 		void setCameraSpeedV(float input){
 			cameraSpeedV=input;
-		}
-
-		void resetSavedMoveDirectionFlag(){
-			savedMoveDirectionFlag=-1;
 		}
 
 		float getCameraSpeedH(){
@@ -1136,8 +1151,8 @@ class Camera{
 			
 			localflag=controller_c->getMoveDirectionFlag();
 			
-			//如果這次輸入的方向鍵和上次不一樣才進行轉向設定,否則跑步會一直抖
-			if((savedMoveDirectionFlag!=localflag)&&(localflag!=-1)){
+			//有按著移動鍵才抓攝影機方向
+			if(localflag!=-1){
 			
 				//計算人物應追蹤的攝影機方向
 				cp_c.GetDirection(fDir,uDir);
@@ -1163,9 +1178,7 @@ class Camera{
 				obj.GetDirection(fDir,NULL);
 				
 				//丟給player設定轉向
-				if(player_c->turnSetting(fDir)){
-					savedMoveDirectionFlag=localflag;
-				}
+				player_c->turnSetting(fDir,turnLimitValue,turnTestValue);
 
 			}
 		}
@@ -1183,13 +1196,14 @@ class Camera{
 		float savedProportion_c;
 		Player*player_c;
 		Controller*controller_c;
-		int savedMoveDirectionFlag;
 		float cameraSpeedH;
 		float cameraSpeedV;
 		float cameraSpeedD;
 		float upLimit;
 		float targetCameraRadius;
 		bool controlDistanceFlag;
+		float turnLimitValue;
+		float turnTestValue;
 
 		//camera水平轉向
 		void turnHelperH(){
@@ -1319,6 +1333,9 @@ class Camera{
 
 		//已知逐格縮放攝影機在Player向下移動和左右橫移攝影機同時發生時有偶發性攝影機瞬移至反方向的問題，可能
 		//跟player減少跟camera的距離使縮放出錯有關?待確認原因並修復
+
+		//UPDATE:貌似改變Player轉向做法後就不太發生了，至少數次編譯執行並轉了5,60圈後只有一次復發，應該算下降
+		//至可以無視的等級，此外在doActions中新增此低概率例外發生時的修復
 		void minusDistanceToPlayer(){
 			//實際縮放camera距離
 
@@ -1327,6 +1344,7 @@ class Camera{
 			float craFdir[3];
 
 			if(controlDistanceFlag){
+
 					actrLocal->GetDirection(actrFdir,actrUdir);
 					cp_c.GetDirection(craFdir,NULL);
 					craFdir[2]=actrFdir[2];
@@ -1369,28 +1387,31 @@ class Camera{
 		
 		
 		void pushCamera(float radius,float height){
-			//推攝影機並存底邊長,高,斜邊長
-			float fDir[3],uDir[3],actPos[3],cpPos[3];
-			FnCharacter *actrLocal;
-			actrLocal=player_c->getActor();
+			if(radius>0){
+				//推攝影機並存底邊長,高,斜邊長
+				float fDir[3],uDir[3],actPos[3],cpPos[3];
+				FnCharacter *actrLocal;
+				actrLocal=player_c->getActor();
 
-			actrLocal->GetPosition(actPos);
-			actPos[2] += 50.0f;
-			actrLocal->GetDirection(fDir, uDir);
-			cp_c.SetPosition(actPos);
-			cp_c.SetDirection(fDir, uDir);
-			cp_c.MoveForward(-radius);
-			cp_c.MoveUp(height);
-			cp_c.GetPosition(cpPos);
-			for (int i = 0; i < 3; i++){
-				fDir[i] = actPos[i] - cpPos[i];
+				actrLocal->GetPosition(actPos);
+				actPos[2] += 50.0f;
+				actrLocal->GetDirection(fDir, uDir);
+				cp_c.SetPosition(actPos);
+				cp_c.SetDirection(fDir, uDir);
+				cp_c.MoveForward(-radius);
+				cp_c.MoveUp(height);
+				cp_c.GetPosition(cpPos);
+				for (int i = 0; i < 3; i++){
+					fDir[i] = actPos[i] - cpPos[i];
+				}
+				cp_c.SetDirection(fDir, NULL);
+
+				radius_c=radius;
+				height_c=height;
+				side_c=sqrt(pow(radius,2)+pow(height,2));
+			}else{
+				controlDistanceFlag=false;
 			}
-			cp_c.SetDirection(fDir, NULL);
-
-			radius_c=radius;
-			height_c=height;
-			side_c=sqrt(pow(radius,2)+pow(height,2));
-
 		}
 
 		void turn(){
@@ -1414,9 +1435,7 @@ class Camera{
 				
 				//轉人物，推攝影機
 				if(controller_c->getCameraDirectionFlagH()!=-1){
-					turnHelperH();
-					//重置方向鍵記錄
-					savedMoveDirectionFlag=-1;
+					turnHelperH();		
 				}
 
 				//player朝向復原
@@ -1456,7 +1475,8 @@ void ZoomCam(int, int);
  -------------------*/
 void FyMain(int argc, char **argv)
 {
-   // create a new world
+	
+	// create a new world
    beOK = FyStartFlyWin32("NTU@2014 Homework #01 - Use Fly2", 0, 0, 800, 600, FALSE);
 
    // setup the data searching paths
@@ -1578,9 +1598,6 @@ void GameAI(int skip)
 	//檢查enemies是否命中player
 	for(int y=0;y<2;y++){
 		damageToPlayer[y]=enemyArray[y]->ifHitPlayer();
-		if(damageToPlayer[y]>0){
-			camera->resetSavedMoveDirectionFlag();
-		}
 	}
 
 	//player做動作時順便接收enemies對他造成的damage
@@ -1642,7 +1659,7 @@ void RenderIt(int skip)
    text.Begin(vID);
    text.Write(string, 20, 20, 255, 0, 0);
 
-   char d9DirS[256],d10DirS[256];
+   char d9DirS[256],d10DirS[256],d11DirS[256];
    char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256],d7DirS[256],d8DirS[256];
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
@@ -1657,6 +1674,7 @@ void RenderIt(int skip)
    sprintf(d8DirS, "playerHP_c: %d ", bug8);
    sprintf(d9DirS, "DonzoAttackAngle: %8.3f ", bug9);
    sprintf(d10DirS, "DonzoAttackRange: %8.3f ", bug10);
+   sprintf(d11DirS, "testAngle: %8.3f ", testAngle);
 
    text.Write(posS, 20, 35, 255, 255, 0);
    text.Write(fDirS, 20, 50, 255, 255, 0);
@@ -1671,6 +1689,7 @@ void RenderIt(int skip)
    text.Write(d8DirS, 20, 185, 255, 255, 0);
    text.Write(d9DirS, 20, 200, 255, 255, 0);
    text.Write(d10DirS, 20, 215, 255, 255, 0);
+   text.Write(d11DirS, 20, 230, 255, 255, 0);
 
    text.End();
 
