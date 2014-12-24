@@ -438,7 +438,6 @@ public:
 	void beHit(CHARACTERid attackerID,float rangeLength,float rangeAngle,int damage){
 		float lengthLocal,angleLocal,resultFdir[3];
 		float fdir[3],udir[3];
-		float testAngle;
 
 	    angleLocal=getAngleWithCharacterID(attackerID,actorID_c,true);
 	    lengthLocal=GetDistanceWithCharacterID(attackerID,actorID_c);
@@ -536,7 +535,6 @@ private:
 	void attackHit(int number){
 		float angleLocal;
 		float lengthLocal;
-		float testAngle;
 
 		angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
 		lengthLocal=GetDistanceWithCharacterID(actorID_c,playerID_c);
