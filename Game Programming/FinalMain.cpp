@@ -451,11 +451,11 @@ public:
 							//反之尋路
 						}
 					}else{
-						if(GetDistanceWithCharacterID(actorID_c,targetID_c)<=toTargetRange){
 							turnSetting();
 							turn();
-							attack();
-						}
+							if((GetDistanceWithCharacterID(actorID_c,targetID_c)<=toTargetRange)&&(turnRLflag==-1)){
+								attack();
+							}
 					}
 					//Donzo's action,he can't run
 				}
@@ -768,10 +768,15 @@ private:
 			//轉完後若夾角小於旋轉速度就直接設定，並取消turnRLflag
 			actor_c.GetDirection(actrFDir,actrUDir);
 		
-			if(getAngle(savedTurnTarget,actrFDir,false)<turnSpeed){
+			if(getAngle(savedTurnTarget,actrFDir,false)<=turnSpeed){
 				savedTurnTarget[2]=actrFDir[2];
 				actor_c.SetDirection(savedTurnTarget,actrUDir);
 				turnRLflag=-1;
+
+				if(index==0){
+					curPoseID_c = idleID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}
 			}
 		}
 	}
