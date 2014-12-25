@@ -14,16 +14,13 @@
  ===============================================================*/
 #include "FlyWin32.h"
 #define PI 3.14159265
+#define enemySize 6
 float bug=-2.0f;
 float bug2=-2.0f;
 float bug3=-2.0f;
 float bug4=-2.0f;
 float bug5=-2.0f;
 float bug6=-2.0f;
-int bug7=-2;
-int bug8=-2;
-float bug9=-2.0f;
-float bug10=-2.0f;
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
@@ -345,10 +342,10 @@ class Controller{
 
 class enemy { 
 public: 
-	enemy(char* name,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,float walkSpeed_input,float toPlayerRange_input,int HP_input,int index_input){
+	enemy(CHARACTERid donzoID,CHARACTERid playerID,char* name,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,float walkSpeed_input,float toTargetRange_input,int HP_input,int index_input){
 		//初始化
 		actorID_c = scene.LoadCharacter(name);
-   
+		
         actor_c.ID(actorID_c);
 		actor_c.SetDirection(fDir_c, uDir_c);
 		actor_c.SetTerrainRoom(terrainRoomID, 10.0f);
@@ -356,18 +353,28 @@ public:
 
 		if(strcmp(name,"Donzo2")==0){
 			enemy_category=0;
+			hitCounter=45;//硬直
 			idleID_c = actor_c.GetBodyAction(NULL, "Idle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "DamageH");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
 			runID_c = actor_c.GetBodyAction(NULL, "Run");
-			attackL2ID_c=actor_c.GetBodyAction(NULL, "AttackL2");
+			attack1ID_c=actor_c.GetBodyAction(NULL, "AttackL2");
 		}else if(strcmp(name,"Robber02")==0){
 		    enemy_category=1;
+			hitCounter=120;//硬直
 			idleID_c = actor_c.GetBodyAction(NULL, "CombatIdle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "Damage2");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
 			runID_c = actor_c.GetBodyAction(NULL, "Run");
-			attackL2ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
+			attack1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
+		}else if(strcmp(name,"Lyubu2")==0){
+		    enemy_category=2;
+			hitCounter=120;//硬直
+			idleID_c = actor_c.GetBodyAction(NULL, "Idle");
+			hurtID_c = actor_c.GetBodyAction(NULL, "LeftDamaged");
+			dieID_c = actor_c.GetBodyAction(NULL, "Die");
+			runID_c = actor_c.GetBodyAction(NULL, "Run");
+			attack1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
 		}
 		HP=HP_input;
 
@@ -383,109 +390,239 @@ public:
 		HP=HP_input;
 		index=index_input;
 		walkSpeed=walkSpeed_input;
-		toPlayerRange=toPlayerRange_input;
-		hitFlag=false;
-		damageToPlayer=-1;
+		toTargetRange=toTargetRange_input;
 		blockCounter=0;
+		playerID_c=playerID;
+		donzoID_c=donzoID;
+		
+		damageToPlayer=0;
+		for(int y=0;y<enemySize;y++){
+			damageToEnemies[y]=0;
+		}
+		//init damage to others
+
+		if(index!=0){
+			targetID_c=donzoID_c;
+		}else{
+			targetID_c=-1;
+		}
+		//init first target
 
 		savedTurnTarget[0]=-9999.0;
 		savedTurnTarget[1]=-9999.0;
 		savedTurnTarget[2]=-9999.0;
 	} 
 
+
 	//GameAI call this
-	void doActions(int skip,CHARACTERid* enemyID_c){
-		//攻擊判定(45)與再次攻擊(-1)倒數
-		if(timeCounter!=-1){
-				if(timeCounter==45){
-					if(curPoseID_c==attackL2ID_c){
-						attackHit(0);
+	void doActions(int skip,int targetHP,CHARACTERid firstAttackerID,int totalDamage){
+		targetHP_c=targetHP;
+		
+		float localPos[3];
+		actor_c.GetPosition(localPos);
+		
+		if((localPos[0]!=-99999.0)&&(localPos[1]!=-99999.0)&&(localPos[2]!=-99999.0)){
+
+			beHit(firstAttackerID,totalDamage);
+			
+			//攻擊判定發生在(hitCounter)再次攻擊發生在(-1)
+			if(timeCounter!=-1){
+					if(timeCounter==hitCounter){
+						if(curPoseID_c==attack1ID_c){
+							attackHit(1);
+						}
 					}
+					timeCounter--;
+			}
+		
+			if((curPoseID_c==idleID_c)||(curPoseID_c==runID_c)){
+			
+				actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
+			
+				if(targetHP_c>0){
+					if(index!=0){
+						//當blockCounter未被設定為>0則進行轉向設定、轉向、跑向Player與攻擊
+						if(blockCounter<=0){
+							turnSetting();
+							turn();
+							runAndAttack();
+						}else{
+							findRoute();
+							//反之尋路
+						}
+					}else{
+						if(GetDistanceWithCharacterID(actorID_c,targetID_c)<=toTargetRange){
+							turnSetting();
+							turn();
+							attack();
+						}
+					}
+					//Donzo's action,he can't run
 				}
-				timeCounter--;
-		}
-
-		if(index==0){
-			bug7=timeCounter;
-			bug8=playerHP_c;
-		}
-		
-		if((curPoseID_c==idleID_c)||(curPoseID_c==runID_c)){
-			
-			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
-			
-			//當blockCounter未被設定為>0則進行跟蹤轉向、跑向Player與攻擊
-			if(blockCounter<=0){
-				turn();
-				runAndAttack(enemyID_c);
-			}else{
-				findRoute(enemyID_c);
-			}
-			//反之尋路
-
-		}else{
-			BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
-
-			if (playOver == FALSE && curPoseID_c != dieID_c){
 				
-				curPoseID_c = idleID_c;
-				actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
+			}else{
+				BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
+
+				if (playOver == FALSE && curPoseID_c != dieID_c){
+					curPoseID_c = idleID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
+				}
 			}
 		}
 	}
 
-	//判斷是否被擊中並設定對應動作
-	void beHit(CHARACTERid attackerID,float rangeLength,float rangeAngle,int damage){
-		float lengthLocal,angleLocal,resultFdir[3];
-		float fdir[3],udir[3];
-
-	    angleLocal=getAngleWithCharacterID(attackerID,actorID_c,true);
-	    lengthLocal=GetDistanceWithCharacterID(attackerID,actorID_c);
-	
-		if((angleLocal<rangeAngle)&&(lengthLocal<rangeLength)){
-
-			//被擊中就重置攻擊動作counter
-			timeCounter=-1;
-
-			if(HP>0){
-				HP-=damage;
-				getResultFdir(attackerID,actorID_c,resultFdir);
-				actor_c.GetDirection(fdir,udir);
-				resultFdir[2]=fdir[2];
-				actor_c.SetDirection(resultFdir,udir);
-			}
-		
-			if(HP>0){
-				curPoseID_c = hurtID_c;
-				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-			}else if((HP<=0)&&(curPoseID_c != dieID_c)){
-				curPoseID_c = dieID_c;
-				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-			}
-		}
-	}
-
-	CHARACTERid getCid(){
+	CHARACTERid getID(){
 		return actorID_c;
 	}
 
-	//跟蹤player轉向設定
-	void turnSetting(CHARACTERid playerID,int playerHP){
-		playerID_c=playerID;
-		playerHP_c=playerHP;
+	CHARACTERid getTargetID(){
+		return targetID_c;
+	}
 
+	int getHP(){
+		return HP;
+	}
+
+	//讓外部知道命中並回傳傷害
+	int ifHitPlayer(){
+		int temp=damageToPlayer;
+		damageToPlayer=0;
+		return temp;
+	}
+
+	int ifHitEnemy(int index){
+		int temp=damageToEnemies[index];
+		damageToEnemies[index]=0;
+		return temp;
+	}
+
+	//init enemies ID
+	void setEnemiesID(CHARACTERid*enemiesID_input){
+		enemiesID=enemiesID_input;
+	}
+    
+private:
+	int enemy_category;
+	FnCharacter actor_c;
+	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c,runID_c,attack1ID_c;
+	CHARACTERid actorID_c;
+	CHARACTERid targetID_c;
+	CHARACTERid playerID_c;
+	CHARACTERid donzoID_c;
+	int targetHP_c;
+	float turnSpeed;
+	float savedTurnTarget[3];
+	int turnRLflag;
+	int timeCounter;
+	int hitCounter;
+	int HP;
+	int index;
+	float walkSpeed;
+	float toTargetRange;
+	int damageToPlayer;
+	int damageToEnemies[enemySize];
+	CHARACTERid* enemiesID;
+	int blockCounter;
+	bool blockTurning;
+
+	//判斷是否被擊中並設定對應動作
+	void beHit(CHARACTERid firstAttackerID,int totalDamage){
+
+			float resultFdir[3];
+			float fdir[3],udir[3];
+		
+			if(totalDamage>0){	
+				targetID_c=firstAttackerID;
+
+				//被擊中就重置攻擊動作counter
+				timeCounter=-1;	
+				
+				if(HP>0){
+					HP-=totalDamage;
+					getResultFdir(firstAttackerID,actorID_c,resultFdir);
+					actor_c.GetDirection(fdir,udir);
+					resultFdir[2]=fdir[2];
+					actor_c.SetDirection(resultFdir,udir);
+				}
+
+				if(HP>0){
+					curPoseID_c = hurtID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
+					curPoseID_c = dieID_c;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}
+			}
+	}
+
+	//攻擊命中傷害判定
+	void attackHit(int number){
+		float angleLimit;
+		float lengthLimit;
+		int damage;
+		float angleLocal;
+		float lengthLocal;
+
+		//招式傷害範圍設定，可根據enemy_category設定
+		if(number==1){
+			if(enemy_category==0){
+				angleLimit=60.0f;
+				lengthLimit=135.0f;
+				damage=1;
+			}else if(enemy_category==1){
+				angleLimit=60.0f;
+				lengthLimit=135.0f;
+				damage=2;
+			}else if(enemy_category==2){
+				angleLimit=60.0f;
+				lengthLimit=135.0f;
+				damage=8;
+			}
+		}
+
+		//Donzo以外的enemy只會對player和Donzo有攻擊判定
+		if(index!=0){
+
+			angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
+			lengthLocal=GetDistanceWithCharacterID(actorID_c,playerID_c);
+
+			if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+				damageToPlayer=damage;
+			}
+
+			angleLocal=getAngleWithCharacterID(actorID_c,donzoID_c,true);
+			lengthLocal=GetDistanceWithCharacterID(actorID_c,donzoID_c);
+
+			if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+				damageToEnemies[0]=damage;
+			}
+		}else{
+			for(int y=1;y<enemySize;y++){
+				angleLocal=getAngleWithCharacterID(actorID_c,enemiesID[y],true);
+				lengthLocal=GetDistanceWithCharacterID(actorID_c,enemiesID[y]);
+				
+				if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+						damageToEnemies[y]=damage;
+				}
+			}
+		}
+		//Donzo則是對所有其他enemy有攻擊判定
+	}
+
+	//跟蹤target轉向設定
+	void turnSetting(){
 		if(curPoseID_c!=dieID_c){
 			float angle;
 			
-			angle=getAngleWithCharacterID(actorID_c,playerID,false);
+			angle=getAngleWithCharacterID(actorID_c,targetID_c,false);
 
 			if(angle>25.0f){
 				
-					getResultFdir(playerID,actorID_c,savedTurnTarget);
+					getResultFdir(targetID_c,actorID_c,savedTurnTarget);
 					
 					actor_c.TurnRight(5.0f);
 
-					if(getAngleWithCharacterID(actorID_c,playerID,false)<angle){
+					if(getAngleWithCharacterID(actorID_c,targetID_c,false)<angle){
 						turnRLflag=0;
 					}else{
 						turnRLflag=1;
@@ -501,62 +638,7 @@ public:
 		}
 	}
 
-	//讓外部知道命中player
-	int ifHitPlayer(){
-		if(hitFlag){
-			hitFlag=false;
-			return damageToPlayer;
-		}else{
-			return -1;
-		}
-	}
-    
-private:
-    int enemy_category;
-	FnCharacter actor_c;
-	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c,runID_c,attackL2ID_c;
-	CHARACTERid actorID_c;
-	CHARACTERid playerID_c;
-	int playerHP_c;
-	float turnSpeed;
-	float savedTurnTarget[3];
-	int turnRLflag;
-	int timeCounter;
-	int HP;
-	int index;
-	float walkSpeed;
-	float toPlayerRange;
-	bool hitFlag;
-	int damageToPlayer;
-	int blockCounter;
-	bool blockTurning;
-
-	//攻擊命中傷害判定
-	void attackHit(int number){
-		float angleLocal;
-		float lengthLocal;
-
-		angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
-		lengthLocal=GetDistanceWithCharacterID(actorID_c,playerID_c);
-
-		if(index==0){
-			bug9=angleLocal;
-			bug10=lengthLocal;
-		}
-
-		if(number==0){
-			if((angleLocal<=60.0f)&&(lengthLocal<=135.0f)){
-				hitFlag=true;
-				if(enemy_category==0){
-					damageToPlayer=4;
-				}else if(enemy_category==1){
-					damageToPlayer=2;
-				}
-			}
-		}
-	}
-
-	void findRoute(CHARACTERid*enemyID_c){
+	void findRoute(){
 		bool continueFlag=true;
 
 		//如果是前一次發生撞人或牆事件則旋轉，之後測試能否前進，若可則進入前進階段
@@ -570,9 +652,9 @@ private:
 
 			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
 			if(continueFlag){
-				for(int y=0;y<2;y++){
+				for(int y=0;y<enemySize;y++){
 					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
 						if(!continueFlag){
 							break;
 						}
@@ -594,9 +676,9 @@ private:
 
 			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
 			if(continueFlag){
-				for(int y=0;y<2;y++){
+				for(int y=0;y<enemySize;y++){
 					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
 						if(!continueFlag){
 							break;
 						}
@@ -612,16 +694,16 @@ private:
 		//尋路的前進階段，只有這個狀態下才會減少blockCounter，若過程再度發生碰撞則重新進入旋轉階段並重置blockCounter
 	}
 
-	void runAndAttack(CHARACTERid*enemyID_c){
+	void runAndAttack(){
 		if(turnRLflag==-1){
 			bool continueFlag=true;
 			//判斷是否撞到人或牆
 
 			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
 			if(continueFlag){
-				for(int y=0;y<2;y++){
+				for(int y=0;y<enemySize;y++){
 					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
 						if(!continueFlag){
 							break;
 						}
@@ -631,27 +713,17 @@ private:
 
 			if(continueFlag){
 
-				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>toPlayerRange){
+				//大於一定range就跑向target
+				if(GetDistanceWithCharacterID(actorID_c,targetID_c)>toTargetRange){
 					if(curPoseID_c!=runID_c){
 						curPoseID_c=runID_c;
 						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					}
 					actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
-					//大於一定range就跑向player
 				}else{
-						//timeCounter在doActions中被倒數到-1則可再度進行攻擊，且palyer要活著
-						if((timeCounter<0)&&(playerHP_c>0)){
-							curPoseID_c = attackL2ID_c;
-							actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-							timeCounter=60;
-						}else{
-							if(curPoseID_c!=idleID_c){
-								curPoseID_c = idleID_c;
-								actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-							}
-						}
-						//否則閒置
-				}	
+					attack();
+				}
+				//反之攻擊
 			}else{
 				blockCounter=20;
 				blockTurning=true;
@@ -659,8 +731,26 @@ private:
 			}
 		}
 	}
+
+	void attack(){
+		//timeCounter在doActions中被倒數到-1則可再度進行攻擊
+		if(timeCounter<0){
+				curPoseID_c = attack1ID_c;
+				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				timeCounter=hitCounter+15;
+				//timeCounter是至下一次攻擊的總時間，hitCounter是根據enemy_category設定的統一擊中判定時間，相當於硬直
+				//+15的15就是不同攻擊可以自訂的發招到命中的時間差
+				//要加入不同招式的話應該可以用random決定不同的attackID，當然時間差就可以根據不同attackID來設定了
+		}else{
+				if(curPoseID_c!=idleID_c){
+						curPoseID_c = idleID_c;
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}
+		}
+		//否則閒置
+	}
 	
-	//轉向player
+	//轉向target
 	void turn(){
 		float actrFDir[3];
 		float actrUDir[3];
@@ -696,8 +786,9 @@ private:
 	}
 };
 
-enemy * enemyArray[2];
-CHARACTERid enemyID[2];
+enemy * enemyArray[enemySize];
+
+CHARACTERid enemyID[enemySize];
 
 class Player{
 public:
@@ -738,6 +829,10 @@ public:
 		turnSpeed=turnSpeed_input;
 		walkSpeed=walkSpeed_input;
 		HP=HP_input;
+
+		for(int y=0;y<enemySize;y++){
+			damageToEnemies[y]=0;
+		}
 	}
 
 	void setTurnSpeed(float input){
@@ -748,8 +843,27 @@ public:
 		return turnSpeed;
 	}
 
-	int getPlayerHP(){
+	FnCharacter*getActor(){
+		return &actor_c;
+	}
+
+	int getHP(){
 		return HP;
+	}
+
+	CHARACTERid getID(){
+		return actorID_c;
+	}
+
+	//檢查是否命中敵人
+	int ifHitEnemy(int index){
+		int temp=damageToEnemies[index];
+		damageToEnemies[index]=0;
+		return temp;
+	}
+
+	void setEnemiesID(CHARACTERid*enemiesID_input){
+		enemiesID=enemiesID_input;
 	}
 
 	//設定player跑步動作
@@ -825,18 +939,11 @@ public:
 		//run action時才接受來自camera的轉向設定
 	}
 
-	FnCharacter*getActor(){
-		return &actor_c;
-	}
-
-	CHARACTERid getPlayerID(){
-		return actorID_c;
-	}
 
 	//做動作，由GameAI呼叫
-	void doActions(int skip,int *damageToPlayer,CHARACTERid *enemyID_c){
+	void doActions(int skip,CHARACTERid firstAttackerID,int totalDamage){
 		
-		beHit(damageToPlayer,enemyID_c);
+		beHit(firstAttackerID,totalDamage);
 
 		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)){
 			
@@ -844,7 +951,7 @@ public:
 		
 			if(curPoseID_c==runID_c){
 				turn();
-				run(enemyID_c);
+				run();
 			}
 		}else{
 			BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
@@ -853,11 +960,11 @@ public:
 			if(timeCounter!=-1){
 				if(timeCounter==0){
 					if(curPoseID_c==atk1ID_c){
-						AttackHit(1);
+						attackHit(1);
 					}else if(curPoseID_c==atk2ID_c){
-						AttackHit(2);
+						attackHit(2);
 					}else if(curPoseID_c==atk3ID_c){
-						AttackHit(3);
+						attackHit(3);
 					}
 				}
 				timeCounter--;
@@ -885,6 +992,7 @@ public:
 		return walkFlag;
 	}
 
+	//是否正在攻擊
 	bool ifAttacking(){
 		if((curPoseID_c == atk1ID_c)||(curPoseID_c == atk2ID_c)||(curPoseID_c == atk3ID_c)){
 			return true;
@@ -897,7 +1005,8 @@ private:
 	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c,runID_c,atk1ID_c,atk2ID_c,atk3ID_c,atk4ID_c,Hatk1ID_c,Hatk2ID_c,Hatk3ID_c,UatkID_c,guardID_c;
 	CHARACTERid actorID_c;
 	
-	
+	CHARACTERid*enemiesID;
+	int damageToEnemies[enemySize];
 	float targetFdir[3];
 	float turnSpeed;
 	int turnRLflag;
@@ -908,67 +1017,68 @@ private:
 	float walkSpeed;
 	int HP;
 
-	//player被命中判定
-	void beHit(int* damage,CHARACTERid* enemyID_c){
-		bool someoneFirstHit=false;
-		float resultFdir[3];
-		float fdir[3],udir[3];
+	//判斷是否被擊中並設定對應動作
+	void beHit(CHARACTERid firstAttackerID,int totalDamage){
+
+			float resultFdir[3];
+			float fdir[3],udir[3];
 		
-		for(int i=0;i<2;i++){
-			if(damage[i]>0){
+			if(totalDamage>0){	
+
+				//被擊中就重置攻擊動作counter
+				timeCounter=-1;	
 				
 				if(HP>0){
-					HP-=damage[i];
-
-					if(!someoneFirstHit){
-						getResultFdir(enemyID_c[i],actorID_c,resultFdir);
-						actor_c.GetDirection(fdir,udir);
-						resultFdir[2]=fdir[2];
-						actor_c.SetDirection(resultFdir,udir);
-						someoneFirstHit=true;
-					}
+					HP-=totalDamage;
+					getResultFdir(firstAttackerID,actorID_c,resultFdir);
+					actor_c.GetDirection(fdir,udir);
+					resultFdir[2]=fdir[2];
+					actor_c.SetDirection(resultFdir,udir);
 				}
-			}
-		}
 
-		if(someoneFirstHit){
 				if(HP>0){
 					curPoseID_c = hurtID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
 					curPoseID_c = dieID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-			 }
-		}
-
+				}
+			}
 	}
-	
-	
-	//擊中判定
-	void AttackHit(int attack)
-	{
-		float rangeLength,rangeAngle;
+
+	//攻擊命中傷害判定
+	void attackHit(int number){
+		float angleLocal;
+		float lengthLocal;
+		float angleLimit;
+		float lengthLimit;
 		int damage;
 
-		if(attack==1){
-			rangeLength=135.0f;
-			rangeAngle=30.0f;
+		if(number==1){
+			lengthLimit=135.0f;
+			angleLimit=30.0f;
 			damage=1;
-		}else if(attack==2){
-			rangeLength=135.0f;
-			rangeAngle=60.0f;
+		}else if(number==2){
+			lengthLimit=135.0f;
+			angleLimit=60.0f;
 			damage=2;
-		}else if(attack==3){
-			rangeLength=135.0f;
-			rangeAngle=180.0f;
+		}else if(number==3){
+			lengthLimit=135.0f;
+			angleLimit=180.0f;
 			damage=5;
 		}
 
-		for(int y=0;y<2;y++){
-			enemyArray[y]->beHit(actorID_c,rangeLength,rangeAngle,damage);
+		//若有敵人在攻擊範圍內就記錄對他的傷害
+		for(int y=1;y<enemySize;y++){
+			angleLocal=getAngleWithCharacterID(actorID_c,enemiesID[y],true);
+			lengthLocal=GetDistanceWithCharacterID(actorID_c,enemiesID[y]);
+				
+			if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+					damageToEnemies[y]=damage;
+			}
 		}
 	}
-
+	
 	void turn(){
 		float playerFDir[3];
 		float playerUDir[3];
@@ -1008,13 +1118,13 @@ private:
 	}
 
 	//前進
-	void run(CHARACTERid*enemyID_c){
+	void run(){
 		if((controller_c->getMoveDirectionFlag()!=-1)&&(turnRLflag==-1)){
 			
 			bool continueFlag=true;
 			//判斷是否撞到敵人
-			 for(int y=0;y<2;y++){
-				continueFlag=testIFforward(actorID_c,enemyID_c[y],50.0f);
+			 for(int y=0;y<enemySize;y++){
+				continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
 				if(!continueFlag){
 					break;
 				}
@@ -1123,6 +1233,7 @@ class Camera{
 			}
 			//float overflow例外處理，直接捨棄camera這一frame的變動，我猜下一frame會因Player的移動使例外不會連續發生
 			//若因此導致程式更嚴重錯誤可能要把這裡test系列的code刪掉
+			//update:經測試例外處理正常
 		}
 		
 
@@ -1530,16 +1641,35 @@ void FyMain(int argc, char **argv)
    controller=new Controller();
    player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
-    
+
+   //enemySize define在最前面，是Donzo+小兵數量+敵人呂布，0號就donzo，enemySize-1號敵人呂布，
+   //敵人呂布這裡就new出來攻擊判定運算會比較方便，所以只要先把他的pos都設為-99999.0f(或其他看不見的地方，如房子裡)，
+   //要用時再set至欲出現的地方就好了
+   //小兵死了一段時間後要消失應該也是這樣~這樣才不用一直new、delete、或對access enemyArray做限制
    fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
-   for(int y=0;y<2;y++){
-	   pos[0]+=150.0f;
-	   if(y==0){
-	     enemyArray[y]=new enemy("Donzo2",pos,fDir,uDir,15.0f,5.0f,75.0f,10,y);
-	   }else{
-		 enemyArray[y]=new enemy("Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,5,y);
-	   }
-	   enemyID[y]=enemyArray[y]->getCid();
+
+   pos[0]-=150.0f;
+   enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,0);
+   enemyID[0]=enemyArray[0]->getID();
+
+   for(int y=1;y<enemySize-1;y++){
+	   pos[0]-=150.0f;
+	   pos[1]+=150.0f;
+	   enemyArray[y]=new enemy(enemyArray[0]->getID(),player->getID(),"Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,10,y);
+	   enemyID[y]=enemyArray[y]->getID();
+   }
+
+   pos[0]=-99999.0f;
+   pos[1]=-99999.0f;
+   pos[2]=-99999.0f;
+   enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,50,enemySize-1);
+   enemyID[enemySize-1]=enemyArray[enemySize-1]->getID();
+
+   //init enemyID array for instance
+   player->setEnemiesID(enemyID);
+   
+   for(int y=0;y<enemySize;y++){
+		enemyArray[y]->setEnemiesID(enemyID);
    }
 
    // setup a point light
@@ -1591,30 +1721,69 @@ void FyMain(int argc, char **argv)
  --------------------------------------------------------------*/
 void GameAI(int skip)
 {
-	int damageToPlayer[2];
-
+	int totalDamage;
+	CHARACTERid firstAttackerID;
+	CHARACTERid targetID;
+	int targetHP;
+	
 	//設定按鍵旗標
 	controller->setFlags();
-
-	//get player turning target dir by camera dir if needed
+	//get player turning target direction by camera direction if needed
 	camera->getTurningTargetDir();
 
-	//檢查enemies是否命中player
-	for(int y=0;y<2;y++){
-		damageToPlayer[y]=enemyArray[y]->ifHitPlayer();
+	
+	//得到對player的damage和攻擊者(只取第一位)
+	totalDamage=0;
+	firstAttackerID=99999;
+	for(int y=0;y<enemySize;y++){
+		totalDamage+=enemyArray[y]->ifHitPlayer();
+		if((totalDamage>0)&&(firstAttackerID==99999)){
+			firstAttackerID=enemyID[y];
+		}
 	}
 
 	//player做動作時順便接收enemies對他造成的damage
-	player->doActions(skip,damageToPlayer,enemyID);
+	player->doActions(skip,firstAttackerID,totalDamage);
+
 	camera->doActions();
+	//camera處理他自己的動作
+	
+	//enemies動作
+	for(int y=0;y<enemySize;y++){
+		//得到其target的HP
+		targetID=enemyArray[y]->getTargetID();
 
-	int playerHP=player->getPlayerHP();
-	CHARACTERid playerID=player->getPlayerID();
+		if(targetID==-1){
+			targetHP=-1;
+		}else if(targetID==player->getID()){
+			targetHP=player->getHP();
+		}else{
+			for(int z=0;z<enemySize;z++){
+				if(enemyArray[z]->getID()==targetID){
+					targetHP=enemyArray[z]->getHP();
+					break;
+				}
+			}
+		}
 
-	//enemies接收player的ID和HP做攻擊判定用
-	for(int y=0;y<2;y++){
-		enemyArray[y]->turnSetting(playerID,playerHP);
-		enemyArray[y]->doActions(skip,enemyID);
+		//得到對自己的damage和攻擊者
+		totalDamage=0;
+		firstAttackerID=99999;
+
+		totalDamage+=player->ifHitEnemy(y);
+		if(totalDamage>0){
+			firstAttackerID=player->getID();
+		}
+
+		for(int z=0;z<enemySize;z++){
+			totalDamage+=enemyArray[z]->ifHitEnemy(y);
+			if((totalDamage>0)&&(firstAttackerID==99999)){
+				firstAttackerID=enemyID[z];
+			}
+		}
+
+		//enemy做動作
+		enemyArray[y]->doActions(skip,targetHP,firstAttackerID,totalDamage);
 	}
 }
 
@@ -1663,8 +1832,8 @@ void RenderIt(int skip)
    text.Begin(vID);
    text.Write(string, 20, 20, 255, 0, 0);
 
-   char d9DirS[256],d10DirS[256],d11DirS[256];
-   char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256],d7DirS[256],d8DirS[256];
+   char d11DirS[256];
+   char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256];
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
    sprintf(uDirS, "up: %8.3f %8.3f %8.3f", uDir[0], uDir[1], uDir[2]);
@@ -1674,10 +1843,6 @@ void RenderIt(int skip)
    sprintf(d4DirS, "constRadius_c: %8.3f ", bug4);
    sprintf(d5DirS, "constHeight_c: %8.3f ", bug5);
    sprintf(d6DirS, "constSide_c: %8.3f ", bug6);
-   sprintf(d7DirS, "DonzoAttackTimeCounter: %d ", bug7);
-   sprintf(d8DirS, "playerHP_c: %d ", bug8);
-   sprintf(d9DirS, "DonzoAttackAngle: %8.3f ", bug9);
-   sprintf(d10DirS, "DonzoAttackRange: %8.3f ", bug10);
    sprintf(d11DirS, "testAngle: %8.3f ", testAngle);
 
    text.Write(posS, 20, 35, 255, 255, 0);
@@ -1689,11 +1854,7 @@ void RenderIt(int skip)
    text.Write(d4DirS, 20, 125, 255, 255, 0);
    text.Write(d5DirS, 20, 140, 255, 255, 0);
    text.Write(d6DirS, 20, 155, 255, 255, 0);
-   text.Write(d7DirS, 20, 170, 255, 255, 0);
-   text.Write(d8DirS, 20, 185, 255, 255, 0);
-   text.Write(d9DirS, 20, 200, 255, 255, 0);
-   text.Write(d10DirS, 20, 215, 255, 255, 0);
-   text.Write(d11DirS, 20, 230, 255, 255, 0);
+   text.Write(d11DirS, 20, 170, 255, 255, 0);
 
    text.End();
 
