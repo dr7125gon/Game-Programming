@@ -388,7 +388,7 @@ public:
 			hurtID_c = actor_c.GetBodyAction(NULL, "LeftDamaged");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
 			runID_c = actor_c.GetBodyAction(NULL, "Run");
-			attack1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
+			attack1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack3");
 		}
 		
 		curPoseID_c = idleID_c;
@@ -460,7 +460,12 @@ public:
 
 				if (playOver == FALSE && curPoseID_c != dieID_c){
 					curPoseID_c = idleID_c;
-					actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
+
+					if(enemy_category!=2){
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
+					}else{
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c,5.0f);
+					}
 				}
 			}
 		}
@@ -501,7 +506,9 @@ public:
 		setHelper();
 
 		actor_c.SetDirection(fDir, uDir);
-		actor_c.SetPosition(pos);
+		actor_c.SetTerrainRoom(terrainRoomID, 10.0f);
+        beOK = actor_c.PutOnTerrain(pos);
+		
 		curPoseID_c = idleID_c;
 		actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
 	}
@@ -509,6 +516,7 @@ public:
 	void killer(){
 		float pos[3];
 
+		HP=0;
 		pos[0]=-99999.0f;
 		pos[1]=-99999.0f;
 		pos[2]=-99999.0f;
@@ -615,7 +623,7 @@ private:
 			}else if(enemy_category==2){
 				angleLimit=60.0f;
 				lengthLimit=135.0f;
-				damage=8;
+				damage=3;
 			}
 		}
 
@@ -770,7 +778,16 @@ private:
 		if(timeCounter<0){
 				curPoseID_c = attack1ID_c;
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-				timeCounter=hitCounter+15;
+
+				if(curPoseID_c==attack1ID_c){
+					if(enemy_category==0){
+						timeCounter=hitCounter+15;
+					}else if(enemy_category==1){
+						timeCounter=hitCounter+15;
+					}else if(enemy_category==2){
+						timeCounter=hitCounter+20;
+					}
+				}
 				//timeCounter是至下一次攻擊的總時間，hitCounter是根據enemy_category設定的統一擊中判定時間，相當於硬直
 				//+15的15就是不同攻擊可以自訂的發招到命中的時間差
 				//要加入不同招式的話應該可以用random決定不同的attackID，當然時間差就可以根據不同attackID來設定了
@@ -928,7 +945,7 @@ public:
 					timeCounter=0;
 				}else if(index==1){
 					curPoseID_c = atk2ID_c;
-					timeCounter=25;
+					timeCounter=20;
 				}else if(index==2){
 					curPoseID_c = atk3ID_c;
 					timeCounter=5;
@@ -1697,7 +1714,7 @@ void FyMain(int argc, char **argv)
    pos[0]=-99999.0f;
    pos[1]=-99999.0f;
    pos[2]=-99999.0f;
-   enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,50,120,enemySize-1);
+   enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,20,120,enemySize-1);
    enemyID[enemySize-1]=enemyArray[enemySize-1]->getID();
 
    //init enemyID array for instance
@@ -1730,6 +1747,8 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_Z, Movement, FALSE);
    FyDefineHotKey(FY_X, Movement, FALSE);
    FyDefineHotKey(FY_C, Movement, FALSE);
+   FyDefineHotKey(FY_V, Movement, FALSE);
+   FyDefineHotKey(FY_B, Movement, FALSE);
 
    // define some mouse functions
    FyBindMouseFunction(LEFT_MOUSE, InitPivot, PivotCam, NULL, NULL);
@@ -1991,6 +2010,27 @@ void Movement(BYTE code, BOOL4 value)
 	if (code == FY_C){
 		if(value){
 			player->setAttackingAction(2);
+		}
+	}
+
+	//敵人呂布set測試鍵
+	if (code == FY_V){
+		 float pos[3],fDir[3],uDir[3];
+		
+		pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
+		fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
+		uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
+		
+		if(value){
+			enemyArray[enemySize-1]->setter(fDir,uDir,pos);
+		}
+	}
+
+	//敵人呂布kill測試鍵
+	if (code == FY_B){
+		
+		if(value){
+			enemyArray[enemySize-1]->killer();
 		}
 	}
 
