@@ -11,6 +11,7 @@
   Created : 0802, 2012
 
   Last Updated : 1010, 2014, Kevin C. Wang
+
  ===============================================================*/
 #include "FlyWin32.h"
 #define PI 3.14159265
@@ -118,6 +119,22 @@ float getAngleWithCharacterID(int a1, int a2,bool Zflag) {
 	return getAngle(resultFdir,actor1Fdir,Zflag);
 	
 }
+
+bool attackjudge(int a1, int a2,float angleLimit,float lengthLimit){
+	float angleLocal;
+	float lengthLocal;
+
+	angleLocal=getAngleWithCharacterID(a1,a2,true);
+	lengthLocal=GetDistanceWithCharacterID(a1,a2);
+
+	if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+				return true;
+	}else{
+		return false;
+	}
+
+}
+
 
 //測試是否能前進， 包括碰牆與碰人，碰人可設定距離
 bool testIFforward(int a1, int a2,float distanceLimit){
@@ -342,7 +359,7 @@ class Controller{
 
 class enemy { 
 public: 
-	enemy(CHARACTERid donzoID,CHARACTERid playerID,char* name,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,float walkSpeed_input,float toTargetRange_input,int HP_input,int index_input){
+	enemy(CHARACTERid donzoID,CHARACTERid playerID,char* name,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,float walkSpeed_input,float toTargetRange_input,int HP_input,int hitCounter_input,int index_input){
 		//初始化
 		actorID_c = scene.LoadCharacter(name);
 		
@@ -353,7 +370,6 @@ public:
 
 		if(strcmp(name,"Donzo2")==0){
 			enemy_category=0;
-			hitCounter=45;//硬直
 			idleID_c = actor_c.GetBodyAction(NULL, "Idle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "DamageH");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
@@ -361,7 +377,6 @@ public:
 			attack1ID_c=actor_c.GetBodyAction(NULL, "AttackL2");
 		}else if(strcmp(name,"Robber02")==0){
 		    enemy_category=1;
-			hitCounter=120;//硬直
 			idleID_c = actor_c.GetBodyAction(NULL, "CombatIdle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "Damage2");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
@@ -369,48 +384,28 @@ public:
 			attack1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
 		}else if(strcmp(name,"Lyubu2")==0){
 		    enemy_category=2;
-			hitCounter=120;//硬直
 			idleID_c = actor_c.GetBodyAction(NULL, "Idle");
 			hurtID_c = actor_c.GetBodyAction(NULL, "LeftDamaged");
 			dieID_c = actor_c.GetBodyAction(NULL, "Die");
 			runID_c = actor_c.GetBodyAction(NULL, "Run");
 			attack1ID_c=actor_c.GetBodyAction(NULL, "NormalAttack1");
 		}
-		HP=HP_input;
-
-
+		
 		curPoseID_c = idleID_c;
 		actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
 		actor_c.Play(START, 0.0f, FALSE, TRUE);
 		actor_c.TurnRight(90.0f);
 
-		turnRLflag=-1;
-		turnSpeed=turnSpeed_input;
-		timeCounter=-1;
-		HP=HP_input;
-		index=index_input;
-		walkSpeed=walkSpeed_input;
-		toTargetRange=toTargetRange_input;
-		blockCounter=0;
 		playerID_c=playerID;
 		donzoID_c=donzoID;
-		
-		damageToPlayer=0;
-		for(int y=0;y<enemySize;y++){
-			damageToEnemies[y]=0;
-		}
-		//init damage to others
-
-		if(index!=0){
-			targetID_c=donzoID_c;
-		}else{
-			targetID_c=-1;
-		}
-		//init first target
-
-		savedTurnTarget[0]=-9999.0;
-		savedTurnTarget[1]=-9999.0;
-		savedTurnTarget[2]=-9999.0;
+		turnSpeed=turnSpeed_input;
+		index=index_input;
+		hitCounter=hitCounter_input;//硬直
+		walkSpeed=walkSpeed_input;
+		toTargetRange=toTargetRange_input;
+		HPconst=HP_input;
+	
+		setHelper();
 	} 
 
 
@@ -500,6 +495,26 @@ public:
 	void setEnemiesID(CHARACTERid*enemiesID_input){
 		enemiesID=enemiesID_input;
 	}
+
+	void setter(float* fDir,float* uDir,float* pos){
+		
+		setHelper();
+
+		actor_c.SetDirection(fDir, uDir);
+		actor_c.SetPosition(pos);
+		curPoseID_c = idleID_c;
+		actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
+	}
+
+	void killer(){
+		float pos[3];
+
+		pos[0]=-99999.0f;
+		pos[1]=-99999.0f;
+		pos[2]=-99999.0f;
+		
+		actor_c.SetPosition(pos);
+	}
     
 private:
 	int enemy_category;
@@ -516,6 +531,7 @@ private:
 	int timeCounter;
 	int hitCounter;
 	int HP;
+	int HPconst;
 	int index;
 	float walkSpeed;
 	float toTargetRange;
@@ -525,6 +541,30 @@ private:
 	int blockCounter;
 	bool blockTurning;
 
+	void setHelper(){
+		HP=HPconst;
+		turnRLflag=-1;
+		timeCounter=-1;
+		blockCounter=0;
+		
+		damageToPlayer=0;
+		for(int y=0;y<enemySize;y++){
+			damageToEnemies[y]=0;
+		}
+		//init damage to others
+
+		if(index!=0){
+			targetID_c=donzoID_c;
+		}else{
+			targetID_c=-1;
+		}
+		//init first target
+
+		savedTurnTarget[0]=-9999.0;
+		savedTurnTarget[1]=-9999.0;
+		savedTurnTarget[2]=-9999.0;
+	}
+	
 	//判斷是否被擊中並設定對應動作
 	void beHit(CHARACTERid firstAttackerID,int totalDamage){
 
@@ -560,8 +600,7 @@ private:
 		float angleLimit;
 		float lengthLimit;
 		int damage;
-		float angleLocal;
-		float lengthLocal;
+		
 
 		//招式傷害範圍設定，可根據enemy_category設定
 		if(number==1){
@@ -583,27 +622,21 @@ private:
 		//Donzo以外的enemy只會對player和Donzo有攻擊判定
 		if(index!=0){
 
-			angleLocal=getAngleWithCharacterID(actorID_c,playerID_c,true);
-			lengthLocal=GetDistanceWithCharacterID(actorID_c,playerID_c);
-
-			if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+			if(attackjudge(actorID_c,playerID_c,angleLimit,lengthLimit)){
 				damageToPlayer=damage;
 			}
 
-			angleLocal=getAngleWithCharacterID(actorID_c,donzoID_c,true);
-			lengthLocal=GetDistanceWithCharacterID(actorID_c,donzoID_c);
-
-			if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+			if(attackjudge(actorID_c,donzoID_c,angleLimit,lengthLimit)){
 				damageToEnemies[0]=damage;
 			}
+
 		}else{
 			for(int y=1;y<enemySize;y++){
-				angleLocal=getAngleWithCharacterID(actorID_c,enemiesID[y],true);
-				lengthLocal=GetDistanceWithCharacterID(actorID_c,enemiesID[y]);
-				
-				if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
-						damageToEnemies[y]=damage;
+
+				if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
+					damageToEnemies[y]=damage;
 				}
+
 			}
 		}
 		//Donzo則是對所有其他enemy有攻擊判定
@@ -1075,10 +1108,7 @@ private:
 
 		//若有敵人在攻擊範圍內就記錄對他的傷害
 		for(int y=1;y<enemySize;y++){
-			angleLocal=getAngleWithCharacterID(actorID_c,enemiesID[y],true);
-			lengthLocal=GetDistanceWithCharacterID(actorID_c,enemiesID[y]);
-				
-			if((angleLocal<=angleLimit)&&(lengthLocal<=lengthLimit)){
+			if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
 					damageToEnemies[y]=damage;
 			}
 		}
@@ -1654,20 +1684,20 @@ void FyMain(int argc, char **argv)
    fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
 
    pos[0]-=150.0f;
-   enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,0);
+   enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,45,0);
    enemyID[0]=enemyArray[0]->getID();
 
    for(int y=1;y<enemySize-1;y++){
 	   pos[0]-=150.0f;
 	   pos[1]+=150.0f;
-	   enemyArray[y]=new enemy(enemyArray[0]->getID(),player->getID(),"Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,10,y);
+	   enemyArray[y]=new enemy(enemyArray[0]->getID(),player->getID(),"Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,10,120,y);
 	   enemyID[y]=enemyArray[y]->getID();
    }
 
    pos[0]=-99999.0f;
    pos[1]=-99999.0f;
    pos[2]=-99999.0f;
-   enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,50,enemySize-1);
+   enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,50,120,enemySize-1);
    enemyID[enemySize-1]=enemyArray[enemySize-1]->getID();
 
    //init enemyID array for instance
