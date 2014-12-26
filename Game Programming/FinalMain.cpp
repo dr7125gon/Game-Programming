@@ -639,6 +639,13 @@ private:
 			}
 
 		}else{
+
+			if(targetID_c==playerID_c){
+				if(attackjudge(actorID_c,playerID_c,angleLimit,lengthLimit)){
+					damageToPlayer=damage;
+				}
+			}
+			
 			for(int y=1;y<enemySize;y++){
 
 				if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
@@ -884,6 +891,7 @@ public:
 		turnSpeed=turnSpeed_input;
 		walkSpeed=walkSpeed_input;
 		HP=HP_input;
+		ifPlayerCanAttackDonzo=false;
 
 		for(int y=0;y<enemySize;y++){
 			damageToEnemies[y]=0;
@@ -1056,6 +1064,14 @@ public:
 		}
 	}
 
+	void ifPlayerCanAttackDonzoON(){
+		ifPlayerCanAttackDonzo=true;
+	}
+
+	void ifPlayerCanAttackDonzoOFF(){
+		ifPlayerCanAttackDonzo=false;
+	}
+
 private:
 	ACTIONid idleID_c,curPoseID_c,dieID_c,hurtID_c,runID_c,atk1ID_c,atk2ID_c,atk3ID_c,atk4ID_c,Hatk1ID_c,Hatk2ID_c,Hatk3ID_c,UatkID_c,guardID_c;
 	CHARACTERid actorID_c;
@@ -1071,6 +1087,7 @@ private:
 	int walkFlag;//有無成功前進
 	float walkSpeed;
 	int HP;
+	bool ifPlayerCanAttackDonzo;
 
 	//判斷是否被擊中並設定對應動作
 	void beHit(CHARACTERid firstAttackerID,int totalDamage){
@@ -1108,6 +1125,7 @@ private:
 		float angleLimit;
 		float lengthLimit;
 		int damage;
+		int startIndex;
 
 		if(number==1){
 			lengthLimit=135.0f;
@@ -1123,8 +1141,14 @@ private:
 			damage=5;
 		}
 
+		if(!ifPlayerCanAttackDonzo){
+			startIndex=1;
+		}else{
+			startIndex=0;
+		}
+		
 		//若有敵人在攻擊範圍內就記錄對他的傷害
-		for(int y=1;y<enemySize;y++){
+		for(int y=startIndex;y<enemySize;y++){
 			if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
 					damageToEnemies[y]=damage;
 			}
@@ -1749,6 +1773,8 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_C, Movement, FALSE);
    FyDefineHotKey(FY_V, Movement, FALSE);
    FyDefineHotKey(FY_B, Movement, FALSE);
+   FyDefineHotKey(FY_N, Movement, FALSE);
+   FyDefineHotKey(FY_M, Movement, FALSE);
 
    // define some mouse functions
    FyBindMouseFunction(LEFT_MOUSE, InitPivot, PivotCam, NULL, NULL);
@@ -2034,7 +2060,21 @@ void Movement(BYTE code, BOOL4 value)
 		}
 	}
 
+	//開關player能否攻擊Donzo的flag之測試鍵
+	if (code == FY_N){
+		if(value){
+			player->ifPlayerCanAttackDonzoON();
+		}
+	}
 
+	//同上
+	if (code == FY_M){
+		if(value){
+			player->ifPlayerCanAttackDonzoOFF();
+		}
+	}
+
+	
 
 	
 }
