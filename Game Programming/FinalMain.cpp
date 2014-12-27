@@ -1951,6 +1951,7 @@ void Movement(BYTE code, BOOL4 value)
 {
 	if (code == FY_LEFT){
 		if(value){
+			controller->rightArrowOff();
 			controller->leftArrowOn();
 		}else{
 			controller->leftArrowOff();
@@ -1959,6 +1960,7 @@ void Movement(BYTE code, BOOL4 value)
 
 	if (code == FY_RIGHT){
 		if(value){
+			controller->leftArrowOff();
 			controller->rightArrowOn();
 		}else{
 			controller->rightArrowOff();
