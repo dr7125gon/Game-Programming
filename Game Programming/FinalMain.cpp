@@ -944,10 +944,30 @@ public:
 		}
 	}
 
+	//設定player防御動作
+	void setGuardAction(bool value){
+		if(value){
+			if (((curPoseID_c == idleID_c)||(curPoseID_c == runID_c))&&(turnRLflag==-1)){
+				curPoseID_c = guardID_c;
+				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+			}
+		}else{
+			if(curPoseID_c==guardID_c){
+				if(controller_c->getMoveDirectionFlag()!=-1){
+						curPoseID_c = runID_c;
+				}else{
+					curPoseID_c = idleID_c;
+				}
+				actor_c.SetCurrentAction(NULL, 0, curPoseID_c,5.0f);
+			}
+		}
+	}
+
+
 	//設定player攻擊動作
 	void setAttackingAction(int index){
 		
-			if ((!ifAttacking())&&(curPoseID_c != hurtID_c)&&(curPoseID_c != dieID_c)){
+			if (((curPoseID_c == idleID_c)||(curPoseID_c == runID_c))&&(turnRLflag==-1)){
 				if(index==0){
 					curPoseID_c = atk1ID_c;
 					timeCounter=0;
@@ -1006,9 +1026,11 @@ public:
 	//做動作，由GameAI呼叫
 	void doActions(int skip,CHARACTERid firstAttackerID,int totalDamage){
 		
-		beHit(firstAttackerID,totalDamage);
+		if(curPoseID_c != guardID_c){
+			beHit(firstAttackerID,totalDamage);
+		}
 
-		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)){
+		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)||(curPoseID_c==guardID_c)){
 			
 			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
 		
@@ -1775,6 +1797,7 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_B, Movement, FALSE);
    FyDefineHotKey(FY_N, Movement, FALSE);
    FyDefineHotKey(FY_M, Movement, FALSE);
+   FyDefineHotKey(FY_Q, Movement, FALSE);
 
    // define some mouse functions
    FyBindMouseFunction(LEFT_MOUSE, InitPivot, PivotCam, NULL, NULL);
@@ -2076,6 +2099,9 @@ void Movement(BYTE code, BOOL4 value)
 		}
 	}
 
+	if (code == FY_Q){
+		player->setGuardAction(value);
+	}
 	
 
 	
