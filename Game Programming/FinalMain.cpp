@@ -1815,6 +1815,9 @@ void FyMain(int argc, char **argv)
    delete player;
    delete camera;
    delete controller;
+   for(int y=0;y<enemySize;y++){
+		delete enemyArray[y];
+   }
 }
 
 
