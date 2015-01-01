@@ -1693,10 +1693,10 @@ void FyMain(int argc, char **argv)
    beOK = FyStartFlyWin32("NTU@2014 Homework #01 - Use Fly2", 0, 0, 800, 600, FALSE);
 
    // setup the data searching paths
-   FySetShaderPath("Data\\NTU5\\Shaders");
-   FySetModelPath("Data\\NTU5\\Scenes");
-   FySetTexturePath("Data\\NTU5\\Scenes\\Textures");
-   FySetScenePath("Data\\NTU5\\Scenes");
+   FySetShaderPath("Data\\Shaders");
+   FySetModelPath("Data\\Scenes");
+   FySetTexturePath("Data\\Scenes\\Textures");
+   FySetScenePath("Data\\Scenes");
 
    // create a viewport
    vID = FyCreateViewport(0, 0, 800, 600);
@@ -1725,9 +1725,9 @@ void FyMain(int argc, char **argv)
    room.AddObject(tID);
 
    // load the character
-   FySetModelPath("Data\\NTU5\\Characters");
-   FySetTexturePath("Data\\NTU5\\Characters");
-   FySetCharacterPath("Data\\NTU5\\Characters");
+   FySetModelPath("Data\\Characters");
+   FySetTexturePath("Data\\Characters");
+   FySetCharacterPath("Data\\Characters");
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
