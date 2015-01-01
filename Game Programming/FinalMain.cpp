@@ -1659,7 +1659,7 @@ class Camera{
 };
 
 Controller*controller;
-Camera*camera;
+Camera*camera; 
 Player *player;
 
 // some globals
