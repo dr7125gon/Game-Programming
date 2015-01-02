@@ -744,38 +744,40 @@ private:
 
 	void runAndAttack(){
 		if(turnRLflag==-1){
-			bool continueFlag=true;
-			//判斷是否撞到人或牆
+			if(GetDistanceWithCharacterID(actorID_c,targetID_c)>toTargetRange){
+				bool continueFlag=true;
+				//判斷是否撞到人或牆
 
-			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
-			if(continueFlag){
-				for(int y=0;y<enemySize;y++){
-					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
-						if(!continueFlag){
-							break;
+				continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+				if(continueFlag){
+					for(int y=0;y<enemySize;y++){
+						if(y!=index){
+							continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
+							if(!continueFlag){
+								break;
+							}
 						}
 					}
 				}
-			}
 
-			if(continueFlag){
+				if(continueFlag){
 
-				//大於一定range就跑向target
-				if(GetDistanceWithCharacterID(actorID_c,targetID_c)>toTargetRange){
+					//大於一定range就跑向target
+				
 					if(curPoseID_c!=runID_c){
 						curPoseID_c=runID_c;
 						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					}
 					actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
+				
+					
 				}else{
-					attack();
+					blockCounter=20;
+					blockTurning=true;
+					//若無法前進則進入尋路的旋轉階段
 				}
-				//反之攻擊
 			}else{
-				blockCounter=20;
-				blockTurning=true;
-				//若無法前進則進入尋路的旋轉階段
+					attack();//反之攻擊
 			}
 		}
 	}
@@ -1659,7 +1661,7 @@ class Camera{
 };
 
 Controller*controller;
-Camera*camera; 
+Camera*camera;
 Player *player;
 
 // some globals
