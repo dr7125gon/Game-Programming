@@ -412,6 +412,8 @@ public:
 	//GameAI call this
 	void doActions(int skip,CHARACTERid firstAttackerID,int totalDamage){
 
+		changeTarget();
+
 		handleHP();
 		
 		float localPos[3];
@@ -562,6 +564,17 @@ private:
 	
 	int blockCounter;
 	bool blockTurning;
+
+	//player逃跑一定距離就回去戳donzo
+	void changeTarget(){
+		if(index!=0){
+			if(targetID_c==playerID_c){
+				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>600.0f){
+					targetID_c=donzoID_c;
+				}
+			}
+		}
+	}
 
 	void handleHP(){
 		//得到其target的HP
