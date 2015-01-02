@@ -410,8 +410,9 @@ public:
 
 
 	//GameAI call this
-	void doActions(int skip,int targetHP,CHARACTERid firstAttackerID,int totalDamage){
-		targetHP_c=targetHP;
+	void doActions(int skip,CHARACTERid firstAttackerID,int totalDamage){
+
+		handleHP();
 		
 		float localPos[3];
 		actor_c.GetPosition(localPos);
@@ -502,9 +503,12 @@ public:
 		return temp;
 	}
 
-	//init enemies ID
-	void setEnemiesID(CHARACTERid*enemiesID_input){
+	//init enemies ID,HPs pointer
+	void setIDandHP(CHARACTERid*enemiesID_input,int*enemiesHP_input,int*playerHPpntr_input){
 		enemiesID=enemiesID_input;
+		enemiesHP=enemiesHP_input;
+		playerHPpntr=playerHPpntr_input;
+
 	}
 
 	void setter(float* fDir,float* uDir,float* pos){
@@ -551,9 +555,30 @@ private:
 	float toTargetRange;
 	int damageToPlayer;
 	int damageToEnemies[enemySize];
+
 	CHARACTERid* enemiesID;
+	int* enemiesHP;
+	int* playerHPpntr;
+	
 	int blockCounter;
 	bool blockTurning;
+
+	void handleHP(){
+		//得到其target的HP
+
+		if(targetID_c==-1){
+			targetHP_c=-1;
+		}else if(targetID_c==playerID_c){
+			targetHP_c=playerHPpntr[0];
+		}else{
+			for(int z=0;z<enemySize;z++){
+				if(targetID_c==enemiesID[z]){
+					targetHP_c=enemiesHP[z];
+					break;
+				}
+			}
+		}
+	}
 
 	void setHelper(){
 		HP=HPconst;
@@ -704,13 +729,17 @@ private:
 
 			actor_c.TurnRight(turnSpeed);
 
-			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			if(playerHPpntr[0]>0){
+				continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			}
 			if(continueFlag){
 				for(int y=0;y<enemySize;y++){
 					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
-						if(!continueFlag){
-							break;
+						if(enemiesHP[y]>0){
+							continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
+							if(!continueFlag){
+								break;
+							}
 						}
 					}
 				}
@@ -747,13 +776,17 @@ private:
 			actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
 			blockCounter--;
 
-			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			if(playerHPpntr[0]>0){
+				continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+			}
 			if(continueFlag){
 				for(int y=0;y<enemySize;y++){
 					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
-						if(!continueFlag){
-							break;
+						if(enemiesHP[y]>0){
+							continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
+							if(!continueFlag){
+								break;
+							}
 						}
 					}
 				}
@@ -774,13 +807,17 @@ private:
 				bool continueFlag=true;
 				//判斷是否撞到人或牆
 
-				continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+				if(playerHPpntr[0]>0){
+					continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+				}
 				if(continueFlag){
 					for(int y=0;y<enemySize;y++){
 						if(y!=index){
-							continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
-							if(!continueFlag){
-								break;
+							if(enemiesHP[y]>0){
+								continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
+								if(!continueFlag){
+									break;
+								}
 							}
 						}
 					}
@@ -879,6 +916,10 @@ enemy * enemyArray[enemySize];
 
 CHARACTERid enemyID[enemySize];
 
+int enemyHP[enemySize];
+
+int playerHP[1];
+
 class Player{
 public:
 	Player(Controller*controller_input,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,int walkSpeed_input,int HP_input){
@@ -952,8 +993,10 @@ public:
 		return temp;
 	}
 
-	void setEnemiesID(CHARACTERid*enemiesID_input){
+
+	void setIDandHP(CHARACTERid*enemiesID_input,int*enemiesHP_input){
 		enemiesID=enemiesID_input;
+		enemiesHP=enemiesHP_input;
 	}
 
 	//設定player跑步動作
@@ -1126,6 +1169,7 @@ private:
 	CHARACTERid actorID_c;
 	
 	CHARACTERid*enemiesID;
+	int *enemiesHP;
 	int damageToEnemies[enemySize];
 	float targetFdir[3];
 	float turnSpeed;
@@ -1249,10 +1293,12 @@ private:
 			bool continueFlag=true;
 			//判斷是否撞到敵人
 			 for(int y=0;y<enemySize;y++){
-				continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
-				if(!continueFlag){
-					break;
-				}
+				 if(enemiesHP[y]>0){
+					continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
+					if(!continueFlag){
+						break;
+					}
+				 }
 			 }
 
 			if(continueFlag){
@@ -1856,6 +1902,8 @@ void FyMain(int argc, char **argv)
    player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
 
+   playerHP[0]=player->getHP();
+
    //enemySize define在最前面，是Donzo+小兵數量+敵人呂布，0號就donzo，enemySize-1號敵人呂布，
    //敵人呂布這裡就new出來攻擊判定運算會比較方便，所以只要先把他的pos都設為-99999.0f(或其他看不見的地方，如房子裡)，
    //要用時再set至欲出現的地方就好了
@@ -1865,6 +1913,7 @@ void FyMain(int argc, char **argv)
    pos[0]-=150.0f;
    enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,45,0);
    enemyID[0]=enemyArray[0]->getID();
+   enemyHP[0]=enemyArray[0]->getHP();
 
    pos[0]=-99999.0f;
    pos[1]=-99999.0f;
@@ -1872,16 +1921,18 @@ void FyMain(int argc, char **argv)
    for(int y=1;y<enemySize-1;y++){
 	   enemyArray[y]=new enemy(enemyArray[0]->getID(),player->getID(),"Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,10,120,y);
 	   enemyID[y]=enemyArray[y]->getID();
+	   enemyHP[y]=enemyArray[y]->getHP();
    }
 
    enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,20,120,enemySize-1);
    enemyID[enemySize-1]=enemyArray[enemySize-1]->getID();
+   enemyHP[enemySize-1]=enemyArray[enemySize-1]->getHP();
 
    //init enemyID array for instance
-   player->setEnemiesID(enemyID);
+   player->setIDandHP(enemyID,enemyHP);
    
    for(int y=0;y<enemySize;y++){
-		enemyArray[y]->setEnemiesID(enemyID);
+		enemyArray[y]->setIDandHP(enemyID,enemyHP,playerHP);
    }
 
    // setup a point light
@@ -1944,8 +1995,11 @@ void GameAI(int skip)
 {
 	int totalDamage;
 	CHARACTERid firstAttackerID;
-	CHARACTERid targetID;
-	int targetHP;
+	
+	playerHP[0]=player->getHP();
+	for(int y=0;y<enemySize;y++){
+		enemyHP[y]=enemyArray[y]->getHP();
+	}
 	
 	//設定按鍵旗標
 	controller->setFlags();
@@ -1969,23 +2023,10 @@ void GameAI(int skip)
 	camera->doActions();
 	//camera處理他自己的動作
 	
+	
+	
 	//enemies動作
 	for(int y=0;y<enemySize;y++){
-		//得到其target的HP
-		targetID=enemyArray[y]->getTargetID();
-
-		if(targetID==-1){
-			targetHP=-1;
-		}else if(targetID==player->getID()){
-			targetHP=player->getHP();
-		}else{
-			for(int z=0;z<enemySize;z++){
-				if(enemyArray[z]->getID()==targetID){
-					targetHP=enemyArray[z]->getHP();
-					break;
-				}
-			}
-		}
 
 		//得到對自己的damage和攻擊者
 		totalDamage=0;
@@ -2004,7 +2045,7 @@ void GameAI(int skip)
 		}
 
 		//enemy做動作
-		enemyArray[y]->doActions(skip,targetHP,firstAttackerID,totalDamage);
+		enemyArray[y]->doActions(skip,firstAttackerID,totalDamage);
 	}
 
    //wave control
