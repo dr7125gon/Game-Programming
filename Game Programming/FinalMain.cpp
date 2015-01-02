@@ -453,7 +453,13 @@ public:
 							}
 					}
 					//Donzo's action,he can't run
+				}else{
+					if(curPoseID_c !=idleID_c){
+						curPoseID_c=idleID_c;
+						actor_c.SetCurrentAction(NULL, 0, curPoseID_c,5.0f);
+					}
 				}
+				//如果目標死了就切成閒置動作
 				
 			}else{
 				BOOL4 playOver=actor_c.Play(ONCE, (float) skip, FALSE, TRUE);
@@ -711,7 +717,26 @@ private:
 			}
 
 			if(continueFlag){
-				blockTurning=false;
+				//與目標距離>500時會轉向到前進後能讓距離縮小的方向才能進入前進階段
+				if(GetDistanceWithCharacterID(actorID_c,targetID_c)>500.0f){
+					float distanceBeforeTry;
+					float distanceAfterTry;
+					
+					distanceBeforeTry=GetDistanceWithCharacterID(actorID_c,targetID_c);
+				
+					actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
+				
+					distanceAfterTry=GetDistanceWithCharacterID(actorID_c,targetID_c);
+	
+					actor_c.MoveForward(-walkSpeed, TRUE, FALSE, FALSE, FALSE);
+				
+					if(distanceAfterTry<=distanceBeforeTry){
+						blockTurning=false;
+					}
+				}else{
+					blockTurning=false;
+				}
+				//反之<500時無此條件，如此便才能在包圍目標時找空位鑽
 			}
 		}else{
 			if(curPoseID_c!=runID_c){
@@ -744,39 +769,41 @@ private:
 
 	void runAndAttack(){
 		if(turnRLflag==-1){
-			bool continueFlag=true;
-			//判斷是否撞到人或牆
+			//大於一定range就跑向target
+			if(GetDistanceWithCharacterID(actorID_c,targetID_c)>toTargetRange){
+				bool continueFlag=true;
+				//判斷是否撞到人或牆
 
-			continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
-			if(continueFlag){
-				for(int y=0;y<enemySize;y++){
-					if(y!=index){
-						continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
-						if(!continueFlag){
-							break;
+				continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
+				if(continueFlag){
+					for(int y=0;y<enemySize;y++){
+						if(y!=index){
+							continueFlag=testIFforward(actorID_c,enemiesID[y],50.0f);
+							if(!continueFlag){
+								break;
+							}
 						}
 					}
 				}
-			}
 
-			if(continueFlag){
+				if(continueFlag){
 
-				//大於一定range就跑向target
-				if(GetDistanceWithCharacterID(actorID_c,targetID_c)>toTargetRange){
 					if(curPoseID_c!=runID_c){
 						curPoseID_c=runID_c;
 						actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					}
 					actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
+				
 				}else{
-					attack();
+					blockCounter=20;
+					blockTurning=true;
+					//若無法前進則進入尋路的旋轉階段
 				}
-				//反之攻擊
+
 			}else{
-				blockCounter=20;
-				blockTurning=true;
-				//若無法前進則進入尋路的旋轉階段
+				attack();
 			}
+			//反之攻擊
 		}
 	}
 
