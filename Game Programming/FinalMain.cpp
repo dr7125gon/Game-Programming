@@ -1892,7 +1892,7 @@ void FyMain(int argc, char **argv)
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
-   pos[0] = -2700.0f; pos[1] = -2800.0f; pos[2] = 1000.0f;
+   pos[0] = -2300.0f; pos[1] = -2800.0f; pos[2] = 1000.0f;
    fDir[0] = 0.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
    uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
 
@@ -1910,7 +1910,7 @@ void FyMain(int argc, char **argv)
    //小兵死了一段時間後要消失應該也是這樣~這樣才不用一直new、delete、或對access enemyArray做限制
    fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
 
-   pos[0]-=150.0f;
+   pos[0]-=550.0f;
    enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,45,0);
    enemyID[0]=enemyArray[0]->getID();
    enemyHP[0]=enemyArray[0]->getHP();
