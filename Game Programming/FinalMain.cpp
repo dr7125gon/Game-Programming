@@ -935,7 +935,7 @@ int playerHP[1];
 
 class Player{
 public:
-	Player(Controller*controller_input,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,int walkSpeed_input,int HP_input){
+	Player(Controller*controller_input,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,int walkSpeed_input,int HP_input,int MP_input){
 		//初始化資料
 		
 		actorID_c = scene.LoadCharacter("Lyubu2");
@@ -972,6 +972,8 @@ public:
 		turnSpeed=turnSpeed_input;
 		walkSpeed=walkSpeed_input;
 		HP=HP_input;
+		MPconst=MP_input;
+		MP=MPconst;
 		ifPlayerCanAttackDonzo=false;
 
 		for(int y=0;y<enemySize;y++){
@@ -993,6 +995,10 @@ public:
 
 	int getHP(){
 		return HP;
+	}
+
+	int getMP(){
+		return MP;
 	}
 
 	CHARACTERid getID(){
@@ -1051,17 +1057,22 @@ public:
 	void setAttackingAction(int index){
 		
 			if (((curPoseID_c == idleID_c)||(curPoseID_c == runID_c))&&(turnRLflag==-1)){
-				if(index==0){
+				if((index==0)&&(MP>=30)){
+					MP-=30;
 					curPoseID_c = atk1ID_c;
 					timeCounter=0;
-				}else if(index==1){
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}else if((index==1)&&(MP>=60)){
+					MP-=60;
 					curPoseID_c = atk2ID_c;
 					timeCounter=20;
-				}else if(index==2){
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+				}else if((index==2)&&(MP>=90)){
+					MP-=90;
 					curPoseID_c = atk3ID_c;
 					timeCounter=5;
+					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 				}
-				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 			}
 	}
 
@@ -1114,6 +1125,10 @@ public:
 		}
 
 		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)||(curPoseID_c==guardID_c)){
+			
+			if(MP<MPconst){
+				MP++;
+			}
 			
 			actor_c.Play(LOOP, (float) skip, FALSE, TRUE);
 		
@@ -1193,8 +1208,10 @@ private:
 	int walkFlag;//有無成功前進
 	float walkSpeed;
 	int HP;
+	int MP;
+	int MPconst;
 	bool ifPlayerCanAttackDonzo;
-
+	
 	//判斷是否被擊中並設定對應動作
 	void beHit(CHARACTERid firstAttackerID,int totalDamage){
 
@@ -1912,7 +1929,7 @@ void FyMain(int argc, char **argv)
    //init managers
    controller=new Controller();
    waveController = new WaveController(5,600);
-   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
+   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100,270);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
 
    playerHP[0]=player->getHP();
