@@ -2270,18 +2270,21 @@ void Movement(BYTE code, BOOL4 value)
 	if (code == FY_Z){
 		if(value){
 			player->setAttackingAction(0);
+			setFX(1);
 		}
 	}
 
 	if (code == FY_X){
 		if(value){
 			player->setAttackingAction(1);
+			setFX(2);
 		}
 	}
 
 	if (code == FY_C){
 		if(value){
 			player->setAttackingAction(2);
+			setFX(3);
 		}
 	}
 
