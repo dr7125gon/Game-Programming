@@ -37,6 +37,7 @@ AUDIOid bgmID;
 
 float testAngle=-2.0f;//例外偵測
 void enemy_hurt(int);
+void setFX(int);
 
 float GetDistance(float*pos1,float*pos2){
 	return (sqrt(pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2) +pow(pos1[2] - pos2[2], 2)));
@@ -644,6 +645,11 @@ private:
 				if(HP>0){
 					curPoseID_c = hurtID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					if(enemy_category==0){
+						enemy_hurt(1);
+					}else if(enemy_category==1){
+						enemy_hurt(0);
+					}
 				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
 					curPoseID_c = dieID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
@@ -684,7 +690,6 @@ private:
 			}
 
 			if(attackjudge(actorID_c,donzoID_c,angleLimit,lengthLimit)){
-				enemy_hurt(1);
 				damageToEnemies[0]=damage;
 			}
 
@@ -699,7 +704,6 @@ private:
 			for(int y=1;y<enemySize;y++){
 
 				if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
-					enemy_hurt(0);
 					damageToEnemies[y]=damage;
 				}
 
@@ -1069,16 +1073,19 @@ public:
 					curPoseID_c = atk1ID_c;
 					timeCounter=0;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					setFX(1);
 				}else if((index==1)&&(MP>=60)){
 					MP-=60;
 					curPoseID_c = atk2ID_c;
 					timeCounter=20;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					setFX(2);
 				}else if((index==2)&&(MP>=90)){
 					MP-=90;
 					curPoseID_c = atk3ID_c;
 					timeCounter=5;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					setFX(3);
 				}
 			}
 	}
@@ -1229,6 +1236,8 @@ private:
 
 				//被擊中就重置攻擊動作counter
 				timeCounter=-1;	
+				scene.DeleteGameFXSystem(gFXID);
+				gFXID=FAILED_ID;
 				
 				if(HP>0){
 					HP-=totalDamage;
@@ -1280,7 +1289,6 @@ private:
 		//若有敵人在攻擊範圍內就記錄對他的傷害
 		for(int y=startIndex;y<enemySize;y++){
 			if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
-				enemy_hurt(0);
 				damageToEnemies[y]=damage;
 			}
 		}
@@ -1880,7 +1888,7 @@ void InitMove(int, int);
 void MoveCam(int, int);
 void InitZoom(int, int);
 void ZoomCam(int, int);
-void setFX(int);
+
 
 /*------------------
   the main program
@@ -2270,21 +2278,18 @@ void Movement(BYTE code, BOOL4 value)
 	if (code == FY_Z){
 		if(value){
 			player->setAttackingAction(0);
-			setFX(1);
 		}
 	}
 
 	if (code == FY_X){
 		if(value){
 			player->setAttackingAction(1);
-			setFX(2);
 		}
 	}
 
 	if (code == FY_C){
 		if(value){
 			player->setAttackingAction(2);
-			setFX(3);
 		}
 	}
 
