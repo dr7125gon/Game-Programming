@@ -1736,11 +1736,11 @@ private:
       enemyArray[enemySize-1]->setter(fDir,uDir,magicPos);
    }
 public:
-   WaveController(){
+   WaveController(int maxWaveCountin = 3, int everyWaveTimein = 600){
       timer = 0; //unit: frame
       waveCount = 1;
-      maxWaveCount = 3; //max+1 wave ryubu will spawn
-      everyWaveTime = 5; //unit: frame
+      maxWaveCount = maxWaveCountin; //max+1 wave ryubu will spawn
+      everyWaveTime = everyWaveTimein; //unit: frame
       alreadyUsedEnemyPointer = 0;
       totalBaseNum = (maxWaveCount+1)*maxWaveCount/2;
       shallSpawnNumBase = (enemySize-2)/totalBaseNum; //sub donzo and ryubu
@@ -1852,7 +1852,7 @@ void FyMain(int argc, char **argv)
 
    //init managers
    controller=new Controller();
-   waveController = new WaveController();
+   waveController = new WaveController(3,5);
    player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
 
