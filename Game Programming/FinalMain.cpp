@@ -15,7 +15,7 @@
  ===============================================================*/
 #include "FlyWin32.h"
 #define PI 3.14159265
-#define enemySize 25
+#define enemySize 32
 float bug=-2.0f;
 float bug2=-2.0f;
 float bug3=-2.0f;
@@ -1782,7 +1782,7 @@ private:
       enemyArray[enemySize-1]->setter(fDir,uDir,magicPos);
    }
 public:
-   WaveController(int maxWaveCountin = 3, int everyWaveTimein = 600){
+   WaveController(int maxWaveCountin = 5, int everyWaveTimein = 600){
       timer = 0; //unit: frame
       waveCount = 1;
       maxWaveCount = maxWaveCountin; //max+1 wave ryubu will spawn
@@ -1898,7 +1898,7 @@ void FyMain(int argc, char **argv)
 
    //init managers
    controller=new Controller();
-   waveController = new WaveController(3,5);
+   waveController = new WaveController(5,600);
    player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
 
