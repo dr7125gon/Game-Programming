@@ -15,7 +15,7 @@
  ===============================================================*/
 #include "FlyWin32.h"
 #define PI 3.14159265
-#define enemySize 6
+#define enemySize 25
 float bug=-2.0f;
 float bug2=-2.0f;
 float bug3=-2.0f;
@@ -1658,7 +1658,80 @@ class Camera{
 		
 };
 
+//Contral wave
+class WaveController{
+private:
+   int timer;
+   int waveCount;
+   int maxWaveCount;
+   int everyWaveTime;
+   int alreadyUsedEnemyPointer;
+   int totalBaseNum;
+   int shallSpawnNumBase;
+      
+
+   void spawnEnemy(){
+     int shallSpawnNum = waveCount * shallSpawnNumBase;
+
+      //two magic spawn point
+      float magicPos[2][3];
+      magicPos[0][0] = -1800.0f; magicPos[0][1] = -100.0f; magicPos[0][2] = 1000.0f;
+      magicPos[1][0] = -600.0f; magicPos[1][1] = -2600.0f; magicPos[1][2] = 1000.0f;
+
+      float fDir[3], uDir[3];
+      fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
+      uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
+
+      for(int i = 0; i < shallSpawnNum; i++){
+         alreadyUsedEnemyPointer += 1;
+         if(alreadyUsedEnemyPointer > enemySize){
+         	// there is something wrong
+         	return;
+         }
+         
+         if(i < shallSpawnNum/2){
+	         enemyArray[alreadyUsedEnemyPointer]->setter(fDir,uDir,magicPos[0]);
+	      }
+	      else{
+	      	enemyArray[alreadyUsedEnemyPointer]->setter(fDir,uDir,magicPos[1]);	
+	      }
+      }
+   }
+public:
+   WaveController(){
+      timer = 0; //unit: frame
+      waveCount = 1;
+      maxWaveCount = 3;
+      everyWaveTime = 5; //unit: frame
+      alreadyUsedEnemyPointer = 0;
+      totalBaseNum = (maxWaveCount+1)*maxWaveCount/2;
+      shallSpawnNumBase = (enemySize-2)/totalBaseNum; //sub donzo and ryubu
+      
+   }
+
+   // call it every frame, it will do all things needed
+   void everyFrameCheck(){
+      timer += 1;
+      
+      if(waveCount <= maxWaveCount){
+         if(timer > everyWaveTime * (waveCount-1)){
+            spawnEnemy();
+            waveCount += 1;
+         }
+      }
+   }
+
+   int getTimer(){
+      return timer;
+   }
+
+   int getWaveCount(){
+      return waveCount;
+   }
+};
+
 Controller*controller;
+WaveController *waveController;
 Camera*camera; 
 Player *player;
 
@@ -1731,12 +1804,13 @@ void FyMain(int argc, char **argv)
 
    // put the character on terrain
    float pos[3], fDir[3], uDir[3];
-   pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
-   fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
+   pos[0] = -2700.0f; pos[1] = -2800.0f; pos[2] = 1000.0f;
+   fDir[0] = 0.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
    uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
 
    //init managers
    controller=new Controller();
+   waveController = new WaveController();
    player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
 
@@ -1750,16 +1824,14 @@ void FyMain(int argc, char **argv)
    enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,45,0);
    enemyID[0]=enemyArray[0]->getID();
 
+   pos[0]=-99999.0f;
+   pos[1]=-99999.0f;
+   pos[2]=-99999.0f;
    for(int y=1;y<enemySize-1;y++){
-	   pos[0]-=150.0f;
-	   pos[1]+=150.0f;
 	   enemyArray[y]=new enemy(enemyArray[0]->getID(),player->getID(),"Robber02",pos,fDir,uDir,15.0f,7.5f,75.0f,10,120,y);
 	   enemyID[y]=enemyArray[y]->getID();
    }
 
-   pos[0]=-99999.0f;
-   pos[1]=-99999.0f;
-   pos[2]=-99999.0f;
    enemyArray[enemySize-1]=new enemy(enemyArray[0]->getID(),player->getID(),"Lyubu2",pos,fDir,uDir,15.0f,5.0f,75.0f,20,120,enemySize-1);
    enemyID[enemySize-1]=enemyArray[enemySize-1]->getID();
 
@@ -1815,6 +1887,7 @@ void FyMain(int argc, char **argv)
    delete player;
    delete camera;
    delete controller;
+   delete waveController;
    for(int y=0;y<enemySize;y++){
 		delete enemyArray[y];
    }
@@ -1891,6 +1964,9 @@ void GameAI(int skip)
 		//enemy°µ°Ê§@
 		enemyArray[y]->doActions(skip,targetHP,firstAttackerID,totalDamage);
 	}
+
+   //wave control
+   waveController->everyFrameCheck();
 }
 
 

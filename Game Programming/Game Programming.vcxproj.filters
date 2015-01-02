@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="FinalMain.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>

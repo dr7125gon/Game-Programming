@@ -793,7 +793,7 @@ int attackjudge(FnCharacter attacker,FnCharacter defender,int type, float area1,
 	float atkdir[3], atkpos[3];//attacker direction,position
 	float defpos[3];//defender position
 	float tmpdir[3];
-	float tmp;//é‹ç®—ç”¨
+	float tmp;//?‹ç???
 	float dot;
 	float dist;
 	attacker.GetDirection(atkdir, NULL);
@@ -1489,7 +1489,7 @@ void Movement(BYTE code, BOOL4 value)
 		curPoseID = idleID;
 		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 	}
-	if (code == FY_Z && attackFlag == 0) {//æˆ‘ç§»å‹•éäº†
+	if (code == FY_Z && attackFlag == 0) {//?‘ç§»?•é?äº?
 		curPoseID = fightID;
 		actor.SetCurrentAction(NULL, 0, curPoseID, 5.0f);
 		attackFlag = 1;
