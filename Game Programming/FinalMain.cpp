@@ -14,6 +14,7 @@
 
  ===============================================================*/
 #include "FlyWin32.h"
+#include <time.h>
 #define PI 3.14159265
 #define enemySize 32
 float bug=-2.0f;
@@ -31,8 +32,11 @@ TEXTid textID = FAILED_ID;
 FnScene scene;
 FnObject terrain;
 BOOL4 beOK;
+GAMEFX_SYSTEMid gFXID = FAILED_ID;
+AUDIOid bgmID;
 
 float testAngle=-2.0f;//例外偵測
+void enemy_hurt(int);
 
 float GetDistance(float*pos1,float*pos2){
 	return (sqrt(pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2) +pow(pos1[2] - pos2[2], 2)));
@@ -643,6 +647,7 @@ private:
 				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
 					curPoseID_c = dieID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+					enemy_hurt(3);
 				}
 			}
 	}
@@ -679,6 +684,7 @@ private:
 			}
 
 			if(attackjudge(actorID_c,donzoID_c,angleLimit,lengthLimit)){
+				enemy_hurt(1);
 				damageToEnemies[0]=damage;
 			}
 
@@ -693,6 +699,7 @@ private:
 			for(int y=1;y<enemySize;y++){
 
 				if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
+					enemy_hurt(0);
 					damageToEnemies[y]=damage;
 				}
 
@@ -1273,7 +1280,8 @@ private:
 		//若有敵人在攻擊範圍內就記錄對他的傷害
 		for(int y=startIndex;y<enemySize;y++){
 			if(attackjudge(actorID_c,enemiesID[y],angleLimit,lengthLimit)){
-					damageToEnemies[y]=damage;
+				enemy_hurt(0);
+				damageToEnemies[y]=damage;
 			}
 		}
 	}
@@ -1872,6 +1880,7 @@ void InitMove(int, int);
 void MoveCam(int, int);
 void InitZoom(int, int);
 void ZoomCam(int, int);
+void setFX(int);
 
 /*------------------
   the main program
@@ -1888,6 +1897,7 @@ void FyMain(int argc, char **argv)
    FySetModelPath("Data\\Scenes");
    FySetTexturePath("Data\\Scenes\\Textures");
    FySetScenePath("Data\\Scenes");
+   FySetGameFXPath("Data\\NTU5\\FX0");
 
    // create a viewport
    vID = FyCreateViewport(0, 0, 800, 600);
@@ -1914,6 +1924,14 @@ void FyMain(int argc, char **argv)
    FnRoom room;
    room.ID(terrainRoomID);
    room.AddObject(tID);
+
+   // set BGM
+   bgmID = FyCreateAudio();
+   FnAudio bgm;
+   bgm.ID(bgmID);
+   bgm.Load("Data\\BGM");
+   bgm.Play(LOOP);
+   srand(time(NULL));
 
    // load the character
    FySetModelPath("Data\\Characters");
@@ -2080,6 +2098,17 @@ void GameAI(int skip)
 
    //wave control
    waveController->everyFrameCheck();
+
+   // play game FX
+   if (gFXID != FAILED_ID) {
+	   FnGameFXSystem gxS(gFXID);
+	   BOOL4 beOK = gxS.Play((float)skip, ONCE);
+	   if (!beOK) {
+		   FnScene scene(sID);
+		   scene.DeleteGameFXSystem(gFXID);
+		   gFXID = FAILED_ID;
+	   }
+   }
 }
 
 
@@ -2311,6 +2340,64 @@ void QuitGame(BYTE code, BOOL4 value)
          FyQuitFlyWin32();
       }
    }
+}
+
+/*------------------
+  When the enemy is hurt, play the sound of hurting and die
+  Kelly C.
+*/
+void enemy_hurt(int enemy) {
+	AUDIOid hurtID = FyCreateAudio();
+	FnAudio sound;
+	sound.ID(hurtID);
+	if (enemy == 0) { //robber being attacked
+		if (rand() % 3 == 1)
+			sound.Load("Data\\robber1");
+		else if (rand() % 3 == 2)
+			sound.Load("Data\\robber2");
+		else
+			sound.Load("Data\\robber3");
+	}
+	else if (enemy == 1) { //Donzo being attacked
+		sound.Load("Data\\Donzo");
+	}
+	else if (enemy == 3) { // is dead
+		sound.Load("Data\\robber_death");
+	}
+	sound.Play(ONCE);
+	//FyDeleteAudio(hurtID);
+}
+
+/*------------------
+ set the FX
+ kelly C.
+-------------------*/
+void setFX(int skill){
+
+
+	FnScene scene(sID);
+	FnCharacter actor;
+	actor.ID(player->getID());
+
+	scene.DeleteGameFXSystem(gFXID);
+	gFXID = scene.CreateGameFXSystem();
+
+
+	OBJECTid baseID = actor.GetBaseObject();
+
+	FnGameFXSystem gxS(gFXID);
+	if (skill == 2) {
+		BOOL4 beOK = gxS.Load("Lyubu_atk01", TRUE);
+	}
+	if (skill == 1) {
+		BOOL4 beOK = gxS.Load("Lyubu_skill01", TRUE);
+	}
+	if (skill == 3) {
+		BOOL4 beOK = gxS.Load("Lyubu_skill03", TRUE);
+	}
+
+	gxS.SetParentObjectForAll(baseID);
+
 }
 
 
