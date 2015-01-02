@@ -1697,11 +1697,22 @@ private:
 	      }
       }
    }
+
+   void spawnRyubu(){
+      float magicPos[3];
+      magicPos[0] = -600.0f; magicPos[1] = -2600.0f; magicPos[2] = 1000.0f;
+
+      float fDir[3], uDir[3];
+      fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
+      uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
+
+      enemyArray[enemySize-1]->setter(fDir,uDir,magicPos);
+   }
 public:
    WaveController(){
       timer = 0; //unit: frame
       waveCount = 1;
-      maxWaveCount = 3;
+      maxWaveCount = 3; //max+1 wave ryubu will spawn
       everyWaveTime = 5; //unit: frame
       alreadyUsedEnemyPointer = 0;
       totalBaseNum = (maxWaveCount+1)*maxWaveCount/2;
@@ -1718,6 +1729,10 @@ public:
             spawnEnemy();
             waveCount += 1;
          }
+      }
+      else if (waveCount == maxWaveCount+1){
+         spawnRyubu();
+         waveCount += 1;
       }
    }
 
